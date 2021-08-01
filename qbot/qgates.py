@@ -63,6 +63,26 @@ toffoli = np.array(
     ,dtype = complex
 )
 
+def _checkGate(gate: np.ndarray):
+    '''
+    Throws error if gate isnt of valid size and shape, used to sanatize funciton input
+    '''
+    if(gate.ndim!=2):
+        raise Exception("gate must be 2 dimensional")
+    shape = gate.shape
+    
+    if(shape[0]!=shape[1]):
+        raise Exception("gate must be square")
+    
+    if(shape[0] & (shape[0]-1) != 0):
+        raise Exception("gate size must be power of 2")
+
+    size = int(round(np.log2(shape[0])))
+
+    return size
+    
+
+
 def genIdentity(numQubits):
     return np.eye(2**numQubits)
 
@@ -130,17 +150,7 @@ def genGateForFullHilbertSpace(numQubits: int, firstTargetQubit: int, gate: np.n
     '''
     turns N qubit gate to into on acting on numQubits
     '''
-    if(gate.ndim!=2):
-        raise Exception("gate must be 2 dimensional")
-    shape = gate.shape
-    
-    if(shape[0]!=shape[1]):
-        raise Exception("gate must be square")
-    
-    if(shape[0] & (shape[0]-1) != 0):
-        raise Exception("gate size must be power of 2")
-
-    size = round(np.log2(shape[0]))
+    size = _checkGate(gate)
 
     if(firstTargetQubit + size - 1 >= numQubits):
         raise Exception("numQubits must be > firstTargetQubit + size - 1")
@@ -198,6 +208,12 @@ def genControledGate(numQubits, controlQubit, targetQubit, singleQubitGate):
     swapGate = genSwapGate(numQubits,q1,q2)
 
     return swapGate @ g @ swapGate
+
+
+def genControledGate_NEW(numQubits,controlQubit,targetQubit,gate):
+    size = _checkGate(gate)
+
+
 
 def genMultiControledGate(numQubits, controlQubits, targetQubit, singleQubitGate):
     pass
