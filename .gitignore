@@ -1,0 +1,7 @@
+__pycache__
+qbot/__pycache__
+notepad.py
+qbot.egg-info
+
+/build
+/dist
