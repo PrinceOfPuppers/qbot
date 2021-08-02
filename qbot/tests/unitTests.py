@@ -36,7 +36,7 @@ class testGates(unittest.TestCase):
         areEqual = np.allclose(createdCnotHadamardBasis,swappedCnot)
         self.assertTrue(areEqual)
     
-    def test_shiftUpGate(self):
+    def test_shiftUpGate1(self):
         
         stateMap = lambda state: 2*state%hilbertDim | 2*state // hilbertDim
 
@@ -50,7 +50,19 @@ class testGates(unittest.TestCase):
                 index = np.where(shifted==1)[0][0]
                 self.assertEqual(index,stateMap(i))
     
-    def test_shiftDownGate(self):
+    def test_shiftUpGate2(self):
+        numQubits = 4
+        hilbertDim = 2 ** numQubits
+        swaps = np.eye(hilbertDim ,dtype=complex)
+        for i in range(0,numQubits):
+            swaps = swaps @ gates.genSwapGate(numQubits, i, numQubits - 1)
+        
+        shiftUp = gates.genShiftGate(numQubits,True)
+        
+        self.assertTrue(np.array_equal(swaps,shiftUp))
+
+    
+    def test_shiftDownGate1(self):
         stateMap = lambda state,numQubits: (state >> 1) | (state & 1) << (numQubits-1)
         for numQubits in range(2,6):
             hilbertDim = 2**numQubits
@@ -62,26 +74,42 @@ class testGates(unittest.TestCase):
                 index = np.where(shifted==1)[0][0]
                 self.assertEqual(index,stateMap(i,numQubits))
 
+    def test_shiftDownGate2(self):
+        numQubits = 4
+        hilbertDim = 2 ** numQubits
+        swaps = np.eye(hilbertDim ,dtype=complex)
+        for i in reversed(range(0,numQubits)):
+            swaps = swaps @ gates.genSwapGate(numQubits, 0, i)
+        
+        shiftDown = gates.genShiftGate(numQubits,False)
+        
+        self.assertTrue(np.array_equal(swaps,shiftDown))
+
     #TODO: create general version of genControlled gate which works on N qubit gates
-    #def test_toffoli(self):
-    #    createdCnot = gates.genControledGate(2,0,1,gates.pauliX)
-    #    createdToffoli = gates.genControledGate(3,0,1,createdCnot)
-#
-    #    areEqual = np.array_equal(gates.toffoli,createdToffoli)
-#
-    #    print(createdToffoli.astype('float'))
-    #    self.assertTrue(areEqual)
+    def test_toffoli(self):
+        createdCnot = gates.genControledGate(2,0,1,gates.pauliX)
+
+        createdToffoli = gates.genControledGate(3,0,1,createdCnot)
+
+        areEqual = np.array_equal(gates.toffoli,createdToffoli)
+
+        self.assertTrue(areEqual)
+
+    def test_upsideDownToffoli(self):
+        createdCnot = gates.genControledGate(2,1,0,gates.pauliX)
+
+        upsideDownToffoli = gates.genControledGate(3,2,0,createdCnot)
+
+        swap = gates.genSwapGate(3,0,2)
+        
+        createdToffoli = swap @ upsideDownToffoli @ swap
+
+        areEqual = np.array_equal(gates.toffoli,createdToffoli)
+        print(createdToffoli.astype(float))
+        #print(rightSideUpToffoli2.astype(float))
+        self.assertTrue(areEqual)
+
 
 
 if __name__ == "__main__":
-
-    for numQubits in range(2,5):
-        identity = np.eye(2**numQubits)
-        for q1 in range(0,numQubits):
-            for q2 in range(0,numQubits):
-                print("qs: ",q1,q2)
-                s = gates.genSwapGate(numQubits,q1,q2)
-                print(numQubits, s.shape)
-                #areEqual = np.array_equal(identity,s@s)
-                #print(s, s@s)
-                #self.assertTrue(areEqual)
+    unittest.main()

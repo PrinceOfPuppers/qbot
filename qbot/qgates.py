@@ -73,7 +73,7 @@ def _checkGate(gate: np.ndarray):
     
     if(shape[0]!=shape[1]):
         raise Exception("gate must be square")
-    
+
     if(shape[0] & (shape[0]-1) != 0):
         raise Exception("gate size must be power of 2")
     
@@ -145,7 +145,9 @@ def genSwapGate(numQubits, q1, q2):
 
 def genShiftGate(numQubits,up:bool):
     '''
-    can be thought of as many swap gates that have the effect of shifting all rails up or down with wrapping
+    PLEASE NOTE: behavior can be counter intuitive, operator shifts rails up/down, not gates
+
+    Can be thought of as many swap gates that have the effect of shifting all rails up or down with wrapping
     aka shifting up causes the 0th rail to become the last, the 1st to become the 0th, the 2nd to become the 1st, etc
     '''
     hilbertDim = 2**numQubits
@@ -230,29 +232,36 @@ def genGateForFullHilbertSpace(numQubits: int, firstTargetQubit: int, gate: np.n
 
 def genControledGate(numQubits,controlQubit,firstTargetQubit,gate):
     size = _checkGate(gate)
-    #print(gate)
-    #print(size)
-    # size+1 qubit c-U gate, where qubit 0 is control and 1 is the first target qubit out of size target qubits
-    g = np.zeros((size+2,size+2),dtype=complex)
-    #print(g)
-    g[0][0] = 1
-    g[1][1] = 1
-    g[2:,2:] = gate
 
-    # generates gate to effect the whole hilbertspace, where the target of the gate is in the correct place
-    # however the contorl bit must be swapped before and after the gate
-    g = genGateForFullHilbertSpace(numQubits,firstTargetQubit-1,g)
+    # size+1 qubit c-U gate, where qubit 0 is control and 1 is the first target qubit out of size target qubits
+    g = np.zeros((2*size,2*size),dtype=complex)
+
+    for i in range(0,size):
+        g[i][i] = 1
+    g[size:,size:] = gate
+
 
     if(firstTargetQubit != 0):
+
+        # generates gate to effect the whole hilbertspace, where the target of the gate is in the correct place
+        # however the contorl bit must be swapped before and after the gate
+        g = genGateForFullHilbertSpace(numQubits,firstTargetQubit-1,g)
+
         #bits to swap
         q1 = firstTargetQubit - 1
         q2 = controlQubit
     
     else:
+
+        # generates gate to effect the whole hilbertspace, where the target of the gate is in the correct place
+        # however the contorl bit must be swapped before and after the gate
+        g = genGateForFullHilbertSpace(numQubits,0,g)
+
         # shift down gate has the same effect as moving the g gate upwards with wrapping
         # such that the target is now qbit 0 and the control is numQubits-1
-        shift = genShiftGate(numQubits,False)
-        g = shift @ g @ shift
+        shiftDown = genShiftGate(numQubits,False)
+        shiftUp = genShiftGate(numQubits,True)
+        g = shiftUp @ g @ shiftDown
         
         #bits to swap
         q1 = numQubits -1
@@ -307,4 +316,11 @@ def main():
     #for i in range(0,)
 
 if __name__ == "__main__":
-    main()
+    numQubits = 4
+    hilbertDim = 2**numQubits
+    up = lambda state: 2*state%hilbertDim | 2*state // hilbertDim
+    down = lambda state: (state >> 1) | (state & 1) << (numQubits-1)
+
+    for i in range(0,hilbertDim):
+        print(f"{i:04b}",f"{up(i):04b}",f"{down(i):04b}",up(down(i))==i,down(up(i))==i )
+    #main()
