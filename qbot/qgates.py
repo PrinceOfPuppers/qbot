@@ -76,10 +76,8 @@ def _checkGate(gate: np.ndarray):
     
     if(shape[0] & (shape[0]-1) != 0):
         raise Exception("gate size must be power of 2")
-
-    size = int(round(np.log2(shape[0])))
-
-    return size
+    
+    return shape[0]
     
 
 
@@ -145,6 +143,23 @@ def genSwapGate(numQubits, q1, q2):
     return swapGate
 
 
+def genShiftGate(numQubits,up:bool):
+    '''
+    can be thought of as many swap gates that have the effect of shifting all rails up or down with wrapping
+    aka shifting up causes the 0th rail to become the last, the 1st to become the 0th, the 2nd to become the 1st, etc
+    '''
+    hilbertDim = 2**numQubits
+
+    if up:
+        stateMap = lambda state: 2*state%hilbertDim | 2*state // hilbertDim
+    else:
+        stateMap = lambda state: (state >> 1) | (state & 1) << (numQubits-1)
+
+    g = np.zeros((hilbertDim,hilbertDim),dtype=complex)
+    for i in range(0,hilbertDim):
+        g[stateMap(i)][i] = 1
+    
+    return g
 
 def genGateForFullHilbertSpace(numQubits: int, firstTargetQubit: int, gate: np.ndarray):
     '''
@@ -152,7 +167,10 @@ def genGateForFullHilbertSpace(numQubits: int, firstTargetQubit: int, gate: np.n
     '''
     size = _checkGate(gate)
 
-    if(firstTargetQubit + size - 1 >= numQubits):
+    gateNumQubits = int(round(np.log2(size)))
+
+
+    if(firstTargetQubit + gateNumQubits - 1 >= numQubits):
         raise Exception("numQubits must be > firstTargetQubit + size - 1")
 
     result = gate
@@ -160,49 +178,85 @@ def genGateForFullHilbertSpace(numQubits: int, firstTargetQubit: int, gate: np.n
         I = np.eye(2**firstTargetQubit)
         result = np.kron(I,result)
     
-    if(numQubits - size != firstTargetQubit):
-        I = np.eye(2**( numQubits - firstTargetQubit - size))
+    if(numQubits - gateNumQubits != firstTargetQubit):
+        I = np.eye(2**( numQubits - firstTargetQubit - gateNumQubits))
         result = np.kron(result,I)
 
     return result
 
 
-def genControledGate(numQubits, controlQubit, targetQubit, singleQubitGate):
+#def genControledGate(numQubits, controlQubit, targetQubit, singleQubitGate):
+#
+#    if(targetQubit != 0):
+#        # 2 qubit c-U gate, where qubit 0 is control and 1 is target
+#        g = np.array(
+#            [
+#                [1,0,0,0],
+#                [0,1,0,0],
+#                [0,0,singleQubitGate[0][0], singleQubitGate[0][1]],
+#                [0,0,singleQubitGate[1][0], singleQubitGate[1][1]]
+#            ]
+#            ,dtype = complex
+#        )
+#        # generates gate to effect the whole hilbertspace, where the target of the gate is in the correct place
+#        # however the contorl bit must be swapped before and after the gate
+#        g = genGateForFullHilbertSpace(numQubits,targetQubit-1,g)
+#        #bits to swap
+#        q1 = targetQubit - 1
+#        q2 = controlQubit
+#    else:
+#        # 2 qubit c-U gate, where qubit 1 is control and 0 is target
+#        g = np.array(
+#            [
+#                [1,0,0,0],
+#                [0,singleQubitGate[0][0],0,singleQubitGate[0][1]],
+#                [0,0,1,0],
+#                [0,singleQubitGate[1][0],0, singleQubitGate[1][1]]
+#            ]
+#            ,dtype = complex
+#        )
+#        # generates gate to effect the whole hilbertspace, where the control of the gate is in the correct place
+#        # however the target bit must be swapped before and after the gate
+#        g = genGateForFullHilbertSpace(numQubits,controlQubit-1,g)
+#        #bits to swap
+#        q1 = controlQubit -1
+#        q2 = targetQubit
+#    
+#
+#    swapGate = genSwapGate(numQubits,q1,q2)
+#
+#    return swapGate @ g @ swapGate
 
-    if(targetQubit != 0):
-        # 2 qubit c-U gate, where qubit 0 is control and 1 is target
-        g = np.array(
-            [
-                [1,0,0,0],
-                [0,1,0,0],
-                [0,0,singleQubitGate[0][0], singleQubitGate[0][1]],
-                [0,0,singleQubitGate[1][0], singleQubitGate[1][1]]
-            ]
-            ,dtype = complex
-        )
-        # generates gate to effect the whole hilbertspace, where the target of the gate is in the correct place
-        # however the contorl bit must be swapped before and after the gate
-        g = genGateForFullHilbertSpace(numQubits,targetQubit-1,g)
+
+def genControledGate(numQubits,controlQubit,firstTargetQubit,gate):
+    size = _checkGate(gate)
+    #print(gate)
+    #print(size)
+    # size+1 qubit c-U gate, where qubit 0 is control and 1 is the first target qubit out of size target qubits
+    g = np.zeros((size+2,size+2),dtype=complex)
+    #print(g)
+    g[0][0] = 1
+    g[1][1] = 1
+    g[2:,2:] = gate
+
+    # generates gate to effect the whole hilbertspace, where the target of the gate is in the correct place
+    # however the contorl bit must be swapped before and after the gate
+    g = genGateForFullHilbertSpace(numQubits,firstTargetQubit-1,g)
+
+    if(firstTargetQubit != 0):
         #bits to swap
-        q1 = targetQubit - 1
+        q1 = firstTargetQubit - 1
         q2 = controlQubit
+    
     else:
-        # 2 qubit c-U gate, where qubit 1 is control and 0 is target
-        g = np.array(
-            [
-                [1,0,0,0],
-                [0,singleQubitGate[0][0],0,singleQubitGate[0][1]],
-                [0,0,1,0],
-                [0,singleQubitGate[1][0],0, singleQubitGate[1][1]]
-            ]
-            ,dtype = complex
-        )
-        # generates gate to effect the whole hilbertspace, where the control of the gate is in the correct place
-        # however the target bit must be swapped before and after the gate
-        g = genGateForFullHilbertSpace(numQubits,controlQubit-1,g)
+        # shift down gate has the same effect as moving the g gate upwards with wrapping
+        # such that the target is now qbit 0 and the control is numQubits-1
+        shift = genShiftGate(numQubits,False)
+        g = shift @ g @ shift
+        
         #bits to swap
-        q1 = controlQubit -1
-        q2 = targetQubit
+        q1 = numQubits -1
+        q2 = controlQubit
     
 
     swapGate = genSwapGate(numQubits,q1,q2)
@@ -210,8 +264,6 @@ def genControledGate(numQubits, controlQubit, targetQubit, singleQubitGate):
     return swapGate @ g @ swapGate
 
 
-def genControledGate_NEW(numQubits,controlQubit,targetQubit,gate):
-    size = _checkGate(gate)
 
 
 
@@ -220,6 +272,14 @@ def genMultiControledGate(numQubits, controlQubits, targetQubit, singleQubitGate
 
 
 def main():
+    numQubits = 4
+    hilbertDim = 2**numQubits
+
+    stateMap = lambda state: 2*state%hilbertDim | 2*state // hilbertDim
+
+    for i in range(0,hilbertDim):
+        print(f'{i:05b}',f'{stateMap(i):05b}')
+    exit()
     # 2 qubit example
     qubits = np.array([1,0,0,0],dtype=complex)
 
@@ -227,7 +287,9 @@ def main():
     #print(genSingleQubitGate(2,0,H))
 
     #sI = genSwapGate(3,0,1)
-    s = genSwapGate(2,0,1)
+    s = genSwapGate(3,0,2)
+
+    print((s @ toffoli @ s).astype(int))
     #print(s)
     #also_sI = genTwoQubitGate(3,0,s)
     #print(sI == also_sI)

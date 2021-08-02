@@ -35,7 +35,33 @@ class testGates(unittest.TestCase):
 
         areEqual = np.allclose(createdCnotHadamardBasis,swappedCnot)
         self.assertTrue(areEqual)
+    
+    def test_shiftUpGate(self):
         
+        stateMap = lambda state: 2*state%hilbertDim | 2*state // hilbertDim
+
+        for numQubits in range(2,6):
+            hilbertDim = 2**numQubits
+            shiftUp = gates.genShiftGate(numQubits,True)
+            for i in range(0,hilbertDim):
+                vec = np.zeros(hilbertDim)
+                vec[i]=1
+                shifted = shiftUp.dot(vec)
+                index = np.where(shifted==1)[0][0]
+                self.assertEqual(index,stateMap(i))
+    
+    def test_shiftDownGate(self):
+        stateMap = lambda state,numQubits: (state >> 1) | (state & 1) << (numQubits-1)
+        for numQubits in range(2,6):
+            hilbertDim = 2**numQubits
+            shiftDown= gates.genShiftGate(numQubits,False)
+            for i in range(0,hilbertDim):
+                vec = np.zeros(hilbertDim)
+                vec[i]=1
+                shifted = shiftDown.dot(vec)
+                index = np.where(shifted==1)[0][0]
+                self.assertEqual(index,stateMap(i,numQubits))
+
     #TODO: create general version of genControlled gate which works on N qubit gates
     #def test_toffoli(self):
     #    createdCnot = gates.genControledGate(2,0,1,gates.pauliX)
