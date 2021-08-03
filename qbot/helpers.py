@@ -59,14 +59,14 @@ def close(x,y,tolerance):
 maxDenom = 50
 tolerance = 1e-6
 vals    = [sqrt(2), sqrt(3), sqrt(5), np.pi, np.e, sqrt(np.pi), sqrt(2*np.pi)]
-symbols = ['√2','√3','√5','π','e','√π','√2π']
+symbols = ['√2','√3','√5','π','e','√π','√2√π']
   
-def floatToAlgebra(f:float):
+def floatToAlgebra(f:float,addToNumerator = ''):
 
     nume,denom = bestRationalApprox(f,maxDenom)
     
     if close(f,nume/denom,tolerance):
-        result = str(nume)
+        result = str(nume)+addToNumerator
         if denom!=1:
             result+=f'/{denom}'
         return result
@@ -76,7 +76,7 @@ def floatToAlgebra(f:float):
         coeff = f/val
         nume,denom = bestRationalApprox(coeff,maxDenom)
         if close(coeff,nume/denom,tolerance):
-            result = f'{nume if nume != 1 else ""}{symbols[i]}'
+            result = f'{nume if nume != 1 else ""}{symbols[i]}{addToNumerator}'
             if denom!=1:
                 result+=f'/{denom}'
             return result
@@ -87,24 +87,39 @@ def floatToAlgebra(f:float):
         nume,denom = bestRationalApprox(coeff,maxDenom)
         if close(coeff,nume/denom,tolerance):
             if denom!=1:
-                return f'{nume}/{denom}{symbols[i]}'
+                return f'{nume}{addToNumerator}/{denom}{symbols[i]}'
             else:
-                return f'{nume}/{symbols[i]}'
+                return f'{nume}{addToNumerator}/{symbols[i]}'
         
-    return str(f)
+    return str(round(f,tolerance)) + addToNumerator
 
 
 def complexToAlgebra(c:complex):
-    return floatToAlgebra(c.real) + ' + (' + floatToAlgebra(c.imag) + ')j'
+    real = floatToAlgebra(c.real)
+    imag = floatToAlgebra(c.imag,'j')
+    
+    if imag == '0j':
+        return real
+    elif real == '0':
+        return imag
+    else:
+        return f'({real} + {imag})'
 
 
-#def stateVecStr(state:np.array):
-#    size = ensureVec(state)
-#
-#    for i,ele in enumerate(state):
-#        
+
+def stateVecStr(state:np.array):
+    size = ensureVec(state)
+    result = f'{complexToAlgebra(state[0])} |{format(0,f"0{size-1}b")}〉'
+    for i in range(1,size):
+        ele = state[i]
+        ket = f' + {complexToAlgebra(ele)} |{format(i,f"0{size-1}b")}〉'
+        result += ket
+    return result
+        
 
 if __name__ == "__main__":
-    print(len(symbols),len(vals))
-    for i in range(0,10):
-        print(complexToAlgebra( (1/3)/(sqrt(2*3.1415926535)*5)+ 8j*np.e/43)  )
+    #print(len(symbols),len(vals))
+    
+    print( stateVecStr(2**(-1/2) *np.array([1,1j],dtype=complex)) )
+    #for i in range(0,10):
+    #    print(complexToAlgebra( (1/3)/(sqrt(2*3.1415926535)*5)+ 8j*np.e/43)  )

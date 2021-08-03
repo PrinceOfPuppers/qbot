@@ -12,16 +12,15 @@ def statesToDensity(stateVecs:[np.ndarray],probs: [float]):
     return result
 
 
-def partialTrace(array:np.ndarray, nQubits, mQubits, traceN = True):
+def partialTrace(density:np.ndarray, nQubits, mQubits, traceN = True):
     '''
     traces nQubits if traceN is true, leaving you with the density matrix for the latter mQubits
     '''
-    shape = array.shape
 
     dimN = 2**nQubits
     dimM = 2**mQubits
     
-    size = ensureSquare(array)
+    size = ensureSquare(density)
     
     if(dimN + dimM != size):
         raise Exception("incorrect number of qubits")
@@ -29,9 +28,34 @@ def partialTrace(array:np.ndarray, nQubits, mQubits, traceN = True):
     axis1,axis2 = (0,2) if traceN else (1,3)
 
     return  np.trace(
-                array.reshape(dimN,dimM,dimN,dimM), 
+                density.reshape(dimN,dimM,dimN,dimM), 
                 axis1=axis1, axis2=axis2
             )
+
+def partialTraceBoth(density,nQubits,mQubits):
+    '''
+    traces out n and m qubits seperatly (used for measurement simulation)
+    '''
+
+    dimN = 2**nQubits
+    dimM = 2**mQubits
+    
+    size = ensureSquare(density)
+    
+    if(dimN + dimM != size):
+        raise Exception("incorrect number of qubits")
+
+    return (
+        np.trace(
+            density.reshape(dimN,dimM,dimN,dimM), 
+            axis1=0, axis2=2
+        ),          
+        np.trace(
+            density.reshape(dimN,dimM,dimN,dimM), 
+            axis1=1, axis2=3
+        )
+    )
+
 
 def densityToStateEnsable(densityMatrix:np.ndarray):
     _ = ensureSquare(densityMatrix)
@@ -41,7 +65,6 @@ def densityToStateEnsable(densityMatrix:np.ndarray):
         if eigVal != 0:
             eigPair.append( (eigVal,eigVecs[i]) )
     return eigPair
-
 
 if __name__ == "__main__":
     density = statesToDensity([ np.array([1,0],dtype=complex),np.array([0,1],dtype=complex) ],[3/4,1/4])

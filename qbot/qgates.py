@@ -275,40 +275,7 @@ def genMultiControledGate(numQubits, controlQubits, targetQubit, singleQubitGate
     pass
 
 
-def main():
-    numQubits = 4
-    hilbertDim = 2**numQubits
 
-    stateMap = lambda state: 2*state%hilbertDim | 2*state // hilbertDim
-
-    for i in range(0,hilbertDim):
-        print(f'{i:05b}',f'{stateMap(i):05b}')
-    exit()
-    # 2 qubit example
-    qubits = np.array([1,0,0,0],dtype=complex)
-
-
-    #print(genSingleQubitGate(2,0,H))
-
-    #sI = genSwapGate(3,0,1)
-    s = genSwapGate(3,0,2)
-
-    print((s @ toffoli @ s).astype(int))
-    #print(s)
-    #also_sI = genTwoQubitGate(3,0,s)
-    #print(sI == also_sI)
-    #for i in range(3,7):
-    #    for j in range(0,i-1):
-    #        H3 = genGateForFullHilbertSpace(i,j,H)
-            #print(np.array_equal(H3))
-    #print(Icnot)
-    #print(sI@ Icnot @sI)
-    #genControledGate(3,1,1,pauliY)
-
-    
-    #genGateForFullHilbertSpace(3,1,s)
-#
-    #for i in range(0,)
 
 if __name__ == "__main__":
     numQubits = 4
@@ -318,4 +285,3 @@ if __name__ == "__main__":
 
     for i in range(0,hilbertDim):
         print(f"{i:04b}",f"{up(i):04b}",f"{down(i):04b}",up(down(i))==i,down(up(i))==i )
-    #main()
