@@ -1,5 +1,5 @@
 import numpy as np
-
+from qbot.helpers import ensureSquare
 
 # static 1 qubit gates
 Identity = np.eye(2)
@@ -67,17 +67,12 @@ def _checkGate(gate: np.ndarray):
     '''
     Throws error if gate isnt of valid size and shape, used to sanatize funciton input
     '''
-    if(gate.ndim!=2):
-        raise Exception("gate must be 2 dimensional")
-    shape = gate.shape
-    
-    if(shape[0]!=shape[1]):
-        raise Exception("gate must be square")
+    size = ensureSquare(gate)
 
-    if(shape[0] & (shape[0]-1) != 0):
+    if(size & (size-1) != 0):
         raise Exception("gate size must be power of 2")
     
-    return shape[0]
+    return size
     
 
 
