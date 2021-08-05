@@ -119,7 +119,7 @@ def stateVecStr(state:np.array):
 
 if __name__ == "__main__":
     #print(len(symbols),len(vals))
-    
+    print(2**(-1/2) *np.array([1,1j],dtype=complex))
     print( stateVecStr(2**(-1/2) *np.array([1,1j],dtype=complex)) )
     #for i in range(0,10):
     #    print(complexToAlgebra( (1/3)/(sqrt(2*3.1415926535)*5)+ 8j*np.e/43)  )

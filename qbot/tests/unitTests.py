@@ -14,7 +14,7 @@ class testGates(unittest.TestCase):
                     self.assertTrue(areEqual)
 
     def test_conditionalCreation(self):
-        createdCnot = gates.genControledGate(2,0,1,gates.pauliX)
+        createdCnot = gates.genControlledGate(2,0,1,gates.pauliX)
         
         areEqual = np.array_equal(gates.cnot,createdCnot)
 
@@ -24,7 +24,7 @@ class testGates(unittest.TestCase):
     def test_swapCnotHadamard(self):
         # test exploits the fact a cnot with the target and control swapped is the same as the cnot 
         # in the hadamard transformed basis        
-        createdCnot = gates.genControledGate(2,0,1,gates.pauliX)
+        createdCnot = gates.genControlledGate(2,0,1,gates.pauliX)
         H2 = np.kron(gates.Hadamard,gates.Hadamard)
         
         createdCnotHadamardBasis = H2 @ createdCnot @ H2
@@ -85,28 +85,34 @@ class testGates(unittest.TestCase):
         
         self.assertTrue(np.array_equal(swaps,shiftDown))
 
-    #TODO: create general version of genControlled gate which works on N qubit gates
     def test_toffoli(self):
-        createdCnot = gates.genControledGate(2,0,1,gates.pauliX)
+        createdCnot = gates.genControlledGate(2,0,1,gates.pauliX)
 
-        createdToffoli = gates.genControledGate(3,0,1,createdCnot)
+        createdToffoli = gates.genControlledGate(3,0,1,createdCnot)
 
+        areEqual = np.array_equal(gates.toffoli,createdToffoli)
+
+        self.assertTrue(areEqual)
+    
+    def test_toffoli_genMultiControledGate(self):
+        createdToffoli = gates.genMultiControlledGate(3,[0,1],2,gates.pauliX)
         areEqual = np.array_equal(gates.toffoli,createdToffoli)
 
         self.assertTrue(areEqual)
 
     def test_upsideDownToffoli(self):
-        createdCnot = gates.genControledGate(2,1,0,gates.pauliX)
+        createdCnot = gates.genControlledGate(2,1,0,gates.pauliX)
 
-        upsideDownToffoli = gates.genControledGate(3,2,0,createdCnot)
+        upsideDownToffoli = gates.genControlledGate(3,2,0,createdCnot)
 
         swap = gates.genSwapGate(3,0,2)
         
         createdToffoli = swap @ upsideDownToffoli @ swap
+        #generate another upsidedown toffoli using genMultiControlledGate
+        multiToffoli = gates.genMultiControlledGate(3,[1,2],0,gates.pauliX)
+        multiToffoli = swap @ multiToffoli @ swap
 
-        areEqual = np.array_equal(gates.toffoli,createdToffoli)
-        print(createdToffoli.astype(float))
-        #print(rightSideUpToffoli2.astype(float))
+        areEqual = np.array_equal(gates.toffoli,createdToffoli) and np.array_equal(gates.toffoli,multiToffoli)
         self.assertTrue(areEqual)
 
 
