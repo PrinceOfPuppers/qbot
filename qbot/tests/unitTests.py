@@ -2,6 +2,8 @@ import unittest
 
 import numpy as np
 import qbot.qgates as gates
+import qbot.density as density
+import qbot.basis as basis
 
 class testGates(unittest.TestCase):
     def test_swapCreationInverse(self):
@@ -115,7 +117,26 @@ class testGates(unittest.TestCase):
         areEqual = np.array_equal(gates.toffoli,createdToffoli) and np.array_equal(gates.toffoli,multiToffoli)
         self.assertTrue(areEqual)
 
+class testMeasurement(unittest.TestCase):
+    def test_computationComputation1(self):
+        state = density.ketsToDensity([basis.computation.kets[0]])
+        measurementResult = density.measureTopNQubits(state,basis.computation.density,1)
+        self.assertTrue(measurementResult.probs,[1.0,0])
 
+    def test_computationComputation2(self):
+        state = density.ketsToDensity(basis.computation.kets,[0.5,0.5])
+        measurementResult = density.measureTopNQubits(state,basis.computation.density,1)
+        self.assertTrue(measurementResult.probs,[0.5,0.5])
+
+    def test_hadamardComputation(self):
+        state = density.ketsToDensity([basis.hadamard.kets[0]])
+        measurementResult = density.measureTopNQubits(state,basis.computation.density,1)
+        self.assertTrue(measurementResult.probs,[0.5,0.5])
+
+    def test_bellBell(self):
+        state = density.ketsToDensity([basis.bell.kets[0]])
+        measurementResult = density.measureTopNQubits(state,basis.bell.density,2)
+        self.assertTrue(measurementResult.probs,[1.0,0,0,0])
 
 if __name__ == "__main__":
     unittest.main()

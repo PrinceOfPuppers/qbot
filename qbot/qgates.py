@@ -1,5 +1,6 @@
 import numpy as np
 from qbot.helpers import ensureSquare
+from types import FunctionType
 
 # static 1 qubit gates
 Identity = np.eye(2)
@@ -137,8 +138,14 @@ def genSwapGate(numQubits, q1, q2):
 
     return swapGate
 
+def genArbitrarySwap(hilbertDim: int, stateMap: FunctionType) -> np.ndarray:
+    g = np.zeros((hilbertDim,hilbertDim),dtype=complex)
+    for i in range(0,hilbertDim):
+        g[stateMap(i)][i] = 1
+    
+    return g
 
-def genShiftGate(numQubits, up:bool, numShifts = 1):
+def genShiftGate(numQubits: int, up:bool, numShifts = 1) -> np.ndarray:
     '''
     PLEASE NOTE: behavior can be counter intuitive, operator shifts rails up/down, not gates
 
@@ -152,11 +159,33 @@ def genShiftGate(numQubits, up:bool, numShifts = 1):
     else:
         stateMap = lambda state: (state >> numShifts) | (state & (2**(numShifts) - 1)) << (numQubits-numShifts)
 
-    g = np.zeros((hilbertDim,hilbertDim),dtype=complex)
+    return genArbitrarySwap(hilbertDim, stateMap)
+
+def genRemoveQubitGate(preHilbertDim: int, postHilbertDim: int, stateMap: FunctionType) -> np.ndarray:
+
+    g = np.zeros((preHilbertDim,postHilbertDim),dtype=complex)
     for i in range(0,hilbertDim):
         g[stateMap(i)][i] = 1
     
     return g
+
+
+
+def genRemoveGapGate(preNumQubits: int, gaps: [int]) -> np.ndarray:
+    '''
+    Removes the qubits provided in gaps, and shifting remaining qubits up to fill the space
+    '''
+    def stateMap(state):
+        for gap in gaps:
+            state = ( (state >> (gap + 1)) << gap ) | ( (2**(gaps) - 1) & state )
+        return state
+    
+    preHilbertDim = 2**preNumQubits 
+    postHilbertDim = 2**(preNumQubits - len(gaps))
+
+    return genRemoveQubitGate(preHilbertDim, postHilbertDim, stateMap)
+
+
 
 def genGateForFullHilbertSpace(numQubits: int, firstTargetQubit: int, gate: np.ndarray):
     '''
