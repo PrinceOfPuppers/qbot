@@ -161,30 +161,37 @@ def genShiftGate(numQubits: int, up:bool, numShifts = 1) -> np.ndarray:
 
     return genArbitrarySwap(hilbertDim, stateMap)
 
-def genRemoveQubitGate(preHilbertDim: int, postHilbertDim: int, stateMap: FunctionType) -> np.ndarray:
-
-    g = np.zeros((preHilbertDim,postHilbertDim),dtype=complex)
-    for i in range(0,hilbertDim):
-        g[stateMap(i)][i] = 1
+# def genRemoveQubitGate(preHilbertDim: int, postHilbertDim: int, stateMap: FunctionType) -> np.ndarray:
+#     g = np.zeros((postHilbertDim, preHilbertDim),dtype=complex)
+#     for i in range(0,preHilbertDim):
+#         g[(stateMap(i))][i] = 1
     
-    return g
+#     return g
 
-
-
-def genRemoveGapGate(preNumQubits: int, gaps: [int]) -> np.ndarray:
-    '''
-    Removes the qubits provided in gaps, and shifting remaining qubits up to fill the space
-    '''
-    def stateMap(state):
-        for gap in gaps:
-            state = ( (state >> (gap + 1)) << gap ) | ( (2**(gaps) - 1) & state )
-        return state
+# def genRemoveGapsGate(preNumQubits: int, gaps: [int]) -> np.ndarray:
+#     '''
+#     Removes the qubits provided in gaps, and shifting remaining qubits up to fill the space
+#     '''
+#     def stateMap(state):
+#         for gap in gaps:
+#             state = ( (state >> (gap + 1)) << gap ) | ( (2**(gaps) - 1) & state )
+#         return state
     
-    preHilbertDim = 2**preNumQubits 
-    postHilbertDim = 2**(preNumQubits - len(gaps))
+#     preHilbertDim = 2**preNumQubits 
+#     postHilbertDim = 2**(preNumQubits - len(gaps))
 
-    return genRemoveQubitGate(preHilbertDim, postHilbertDim, stateMap)
+#     return genRemoveQubitGate(preHilbertDim, postHilbertDim, stateMap)
 
+# def genRemoveFirstNQubitsGate(preNumQubits: int, numRemove: int) -> np.ndarray:
+#     '''
+#     creates a gate which removes the first N qubits
+#     '''
+#     stateMap = lambda state: state >> numRemove
+
+#     preHilbertDim = 2**preNumQubits 
+#     postHilbertDim = 2**(preNumQubits - numRemove) 
+
+    # return genRemoveQubitGate(preHilbertDim, postHilbertDim, stateMap)
 
 
 def genGateForFullHilbertSpace(numQubits: int, firstTargetQubit: int, gate: np.ndarray):

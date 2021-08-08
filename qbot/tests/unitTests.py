@@ -116,6 +116,7 @@ class testGates(unittest.TestCase):
 
         areEqual = np.array_equal(gates.toffoli,createdToffoli) and np.array_equal(gates.toffoli,multiToffoli)
         self.assertTrue(areEqual)
+    
 
 class testMeasurement(unittest.TestCase):
     def test_computationComputation1(self):
@@ -137,6 +138,33 @@ class testMeasurement(unittest.TestCase):
         state = density.ketsToDensity([basis.bell.kets[0]])
         measurementResult = density.measureTopNQubits(state,basis.bell.density,2)
         self.assertTrue(measurementResult.probs,[1.0,0,0,0])
+
+    # def test_removeFirstNQubits1(self):
+    #     rmGate = gates.genRemoveFirstNQubitsGate(3,2)
+    #     ket = np.array([1,0,0,0,0,0,0,0], dtype = complex)
+    #     correctResult = np.array([1,0],dtype = complex)
+
+    #     areEqual = np.array_equal(correctResult, rmGate.dot(ket))
+    #     self.assertTrue(areEqual)
+
+    # def test_removeFirstNQubits2(self):
+    #     rmGate = gates.genRemoveFirstNQubitsGate(3,2)
+    #     ket = np.array([0,0,0,0,0,0,0,1], dtype = complex)
+    #     correctResult = np.array([0,1],dtype = complex)
+    #     generatedResult = rmGate.dot(ket)
+    #     areEqual = np.array_equal(correctResult, generatedResult)
+    #     self.assertTrue(areEqual)
+    
+    # def test_removeFirstNQubitsDensity1(self):
+    #     rmGate = gates.genRemoveFirstNQubitsGate(2,1)
+    #     bellDensity = basis.bell.density[0]
+    #     state = rmGate @ bellDensity @ rmGate.T
+    #     print(bellDensity.shape,rmGate.shape)
+    #     print("\n",density.densityToStateEnsable(state))
+    #     # generatedResult = rmGate.dot(ket)
+    #     # areEqual = np.array_equal(correctResult, generatedResult)
+    #     # self.assertTrue(areEqual)
+    
 
 if __name__ == "__main__":
     unittest.main()

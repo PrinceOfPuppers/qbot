@@ -3,8 +3,8 @@ import numpy.linalg as linalg
 from qbot.helpers import ensureSquare
 import qbot.qgates as gates
 
-def ketsToDensity(kets:[np.ndarray],probs: [float] = None):
-    '''converts a state vector to a density matrix'''
+def ketsToDensity(kets:[np.ndarray],probs: [float] = None) -> np.ndarray:
+    '''converts set of kets to a density matrix'''
     probs = [1] if probs == None else probs
 
     if len(kets) != len(probs):

@@ -3,6 +3,7 @@ import numpy as np
 import qbot.qgates as gates
 import qbot.density as d
 from qbot.helpers import stateVecStr
+import qbot.basis as basis 
 
 def makeStateVec(stateList,coeff=1):
     return coeff*np.array(stateList,dtype=complex)
@@ -11,37 +12,45 @@ def makeStateVec(stateList,coeff=1):
 class CircuitElement:
     __slots__ = (
         'pos',
-        'inputBlacklist',
-        'outputBlacklist',
         'preNumQubits',
         'postNumQubits',
     )
-    def __init__(self, numTotalQubits: int, pos: int, inputBlacklist: [int], outputBlacklist: [int]):
+    def __init__(self, pos: int, preNumQubits: int, postNumQubits: int):
         self.pos = pos
-        self.inputBlacklist = inputBlacklist
-        self.outputBlacklist = outputBlacklist
-        self.preNumQubits = numTotalQubits - len(inputBlacklist)
-        self.postNumQubits = numTotalQubits - len(outputBlacklist)
+        self.preNumQubits = preNumQubits
+        self.postNumQubits = postNumQubits
 
 class Measurement(CircuitElement):
     __slots__ =(
-        'nQubits',
-        'mQubits',
-        'measuringTop', # boolean denoting if top n are measured or bottom n
-        'ascii'
+        'basis',
+        'firstTargetQubit',
+        'numTargetQubits',
+        'preShiftGate',
+        'postShiftGate',
+        'ascii',
     )
-    def __init__(self, numTotalQubits: int, pos: int, inputBlacklist, nQubits: int, mQubits: int, measuringTop: bool):
-        super().__init__(pos, nQubits)
-        self.nQubits = nQubits
-        self.mQubits = mQubits
-        self.measuringTop = measuringTop
+    def __init__(self, pos: int, preNumQubits: int, firstTargetQubit: int, numTargetQubits: int, basis: basis.Basis):
+        postNumQubits = preNumQubits - numTargetQubits
+        super().__init__(pos, preNumQubits, postNumQubits)
+        self.basis = basis
+        self.firstTargetQubit = firstTargetQubit
+        self.numTargetQubits = numTargetQubits
 
-        if measuringTop:
-            self.postNumQubits = mQubits
-        else:
-            self.postNumQubits = nQubits
-        #TODO: ascii instantiation
+        self.preShiftGate = gates.genShiftGate(preNumQubits,True,firstTargetQubit)
+        self.postShiftGate = gates.genShiftGate(postNumQubits,False,firstTargetQubit)
+        #TODO: ASCII
+    
+    def apply(self,density: np.ndarray) -> d.MeasurementResult:
+        density = self.preShiftGate @ density
+
+        result = d.measureTopNQubits(density,self.basis.density, self.numTargetQubits)
         
+        result.unMeasuredDensity = self.postShiftGate @ result.unMeasuredDensity
+        return result
+
+
+
+
 class Gate:
     __slots__ = (
         'pos',
@@ -81,27 +90,9 @@ class Gate:
         self.matrix = matrix
 
         #TODO: ascii instantiation
-
-
-def applyGate(gate:Gate, state):
-    return np.matmul(gate.matrix, state)
-
-def applyMeasurement(measurement:Measurement, state):
-    (top,bottom) = d.partialTraceBoth(state,measurement.nQubits,measurement.mQubits)
-
-    print("top",top)
-    print("bottom",bottom)
-
-
-
-def runCircut(circuit):
-    applyElementSwitch = {
-        "gate": applyGate,
-        "measurement": applyMeasurement,
-    }
-    pass
     
-
+    def apply(self,density):
+        return self.matrix @ density @ self.matrix.H
 
 
 def main():
@@ -114,10 +105,9 @@ def main():
         1
     ]
     
-    initalDensity = d.statesToDensity(initalStates,initalProbs)
+    initalDensity = d.ketsToDensity(initalStates,initalProbs)
     numQubits = 2
     circuit = [
-        Gate(numQubits, gates.cnot)
     ]
 
 if __name__ == "__main__":
