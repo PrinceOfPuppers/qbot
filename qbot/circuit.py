@@ -58,11 +58,14 @@ class Gate:
         'controlQubits',    # list of ints 
         'firstTargetQubit', # start of target bits (int)
         'lastTargetQubit',   # end of target bits
-        'matrix',      # np.ndarray(2 dimensional) reperesenting the gate
+        'operator',      # np.ndarray(2 dimensional) reperesenting the gate
         'ascii'        # np.ndarray of chars representing the gate
     )
     def __init__(self, pos: int, numQubits: int, matrix: np.ndarray, firstTargetQubit: int = 0, controlQubits: [int] = None):
         
+        if(controlQubits == None):
+            controlQubits = []
+
         for controlQubit in controlQubits:
             if(numQubits < controlQubit):
                 raise Exception("Control Qubits must be <= numQubits")
@@ -70,8 +73,7 @@ class Gate:
         if(len(controlQubits) != len(set(controlQubits))):
             raise Exception("controlQubits must not contain duplicates")
 
-        if(controlQubits == None):
-            controlQubits = []
+        
         self.pos = pos
         numTargetQubits = gates._checkGate(matrix) // 2
         numControlQubits = len(controlQubits)
@@ -84,15 +86,15 @@ class Gate:
         self.lastTargetQubit = firstTargetQubit + numTargetQubits - 1
         self.controlQubits = controlQubits.sort()
         
-        if(len(controlQubits) != 0):
-            gates.genMultiControlledGate(numQubits,controlQubits,firstTargetQubit,matrix)
+        if(len(controlQubits) == 0):
+            self.operator = gates.genGateForFullHilbertSpace(numQubits,firstTargetQubit,matrix)
+        else:
+            self.operator = gates.genMultiControlledGate(numQubits,controlQubits,firstTargetQubit,matrix)
         
-        self.matrix = matrix
-
         #TODO: ascii instantiation
     
     def apply(self,density):
-        return self.matrix @ density @ self.matrix.H
+        return self.operator @ density @ self.operator.conj().T
 
 
 def main():

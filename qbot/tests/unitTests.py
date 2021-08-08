@@ -4,6 +4,7 @@ import numpy as np
 import qbot.qgates as gates
 import qbot.density as density
 import qbot.basis as basis
+import qbot.circuit as circuit
 
 class testGates(unittest.TestCase):
     def test_swapCreationInverse(self):
@@ -138,7 +139,7 @@ class testMeasurement(unittest.TestCase):
         state = density.ketsToDensity([basis.bell.kets[0]])
         measurementResult = density.measureTopNQubits(state,basis.bell.density,2)
         self.assertTrue(measurementResult.probs,[1.0,0,0,0])
-
+    
     # def test_removeFirstNQubits1(self):
     #     rmGate = gates.genRemoveFirstNQubitsGate(3,2)
     #     ket = np.array([1,0,0,0,0,0,0,0], dtype = complex)
@@ -164,7 +165,30 @@ class testMeasurement(unittest.TestCase):
     #     # generatedResult = rmGate.dot(ket)
     #     # areEqual = np.array_equal(correctResult, generatedResult)
     #     # self.assertTrue(areEqual)
-    
+
+class testCircuit(unittest.TestCase):
+    def test_bellCreation(self):
+        ics = [
+            density.ketToDensity(np.array([1,0,0,0], dtype= complex)),
+            density.ketToDensity(np.array([0,1,0,0], dtype= complex)),
+            density.ketToDensity(np.array([0,0,1,0], dtype= complex)),
+            density.ketToDensity(np.array([0,0,0,1], dtype= complex)),
+        ]
+        
+        circ = [
+            circuit.Gate(0,2,gates.Hadamard),
+            circuit.Gate(1,2,gates.pauliX,1,[0])
+        ]
+
+        circ.sort(key = lambda ele: ele.pos)
+
+        for i,ic in enumerate(ics):
+            for ele in circ:
+                ic = ele.apply(ic)
+            areEqual = np.allclose(ic,basis.bell.density[i])
+            self.assertTrue(areEqual)
+
+
 
 if __name__ == "__main__":
     unittest.main()

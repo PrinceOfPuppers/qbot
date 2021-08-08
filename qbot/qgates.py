@@ -37,6 +37,11 @@ pauliZ =  np.array(
     ,dtype = complex
 )
 
+################################################################
+# NOTE: all static control gates are only used for unittesting #
+#       control gates used in actual application are generated #
+################################################################
+
 # static 2 qubit gates
 cnot = np.array(
     [

@@ -17,6 +17,9 @@ def ketsToDensity(kets:[np.ndarray],probs: [float] = None) -> np.ndarray:
 
     return result
 
+def ketToDensity(ket: np.ndarray) -> np.ndarray:
+    return np.outer(ket,ket)
+
 
 def partialTrace(density:np.ndarray, nQubits, mQubits, traceN = True):
     '''

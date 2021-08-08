@@ -44,10 +44,10 @@ bell = Basis(
     'bell',
     [
         oneOverRoot2*np.array([1,0,0,1] ,dtype=complex),
-        oneOverRoot2*np.array([1,0,0,-1],dtype=complex),
         oneOverRoot2*np.array([0,1,1,0] ,dtype=complex),
+        oneOverRoot2*np.array([1,0,0,-1],dtype=complex),
         oneOverRoot2*np.array([0,1,-1,0],dtype=complex),
     ],
-    [ "|Φ⁺〉", "|Φ⁻〉", "|Ψ⁺〉", "|Ψ⁻〉" ]
+    [ "|β₀₀〉", "|β₀₁〉", "|β₁₀〉", "|β₁₁〉" ]
 )
 allBasis = [computation, hadamard]
