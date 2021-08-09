@@ -37,13 +37,18 @@ class Measurement(CircuitElement):
         self.numTargetQubits = numTargetQubits
 
         self.preShiftGate = gates.genShiftGate(preNumQubits,True,firstTargetQubit)
-        self.postShiftGate = gates.genShiftGate(postNumQubits,False,firstTargetQubit)
+
+        if postNumQubits != 0:
+            self.postShiftGate = gates.genShiftGate(postNumQubits,False,firstTargetQubit)
+        else:
+            self.postShiftGate = np.array([],dtype=complex)
+
         #TODO: ASCII
     
     def apply(self,density: np.ndarray) -> d.MeasurementResult:
-        density = self.preShiftGate @ density
+        shifted = self.preShiftGate @ density
 
-        result = d.measureTopNQubits(density,self.basis.density, self.numTargetQubits)
+        result = d.measureTopNQubits(shifted ,self.basis.density, self.numTargetQubits)
         
         result.unMeasuredDensity = self.postShiftGate @ result.unMeasuredDensity
         return result

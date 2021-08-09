@@ -20,6 +20,8 @@ def ketsToDensity(kets:[np.ndarray],probs: [float] = None) -> np.ndarray:
 def ketToDensity(ket: np.ndarray) -> np.ndarray:
     return np.outer(ket,ket)
 
+# def normalizeDensity(density: np.ndarray):
+#     density /= np.trace(density)
 
 def partialTrace(density:np.ndarray, nQubits, mQubits, traceN = True):
     '''
@@ -65,6 +67,9 @@ def partialTraceBoth(density,nQubits,mQubits):
         )
     )
 
+def combineDensity(d1: np.ndarray, d2: np.ndarray):
+    return np.kron(d1,d2)
+
 class MeasurementResult:
     __slots__ = (
         'unMeasuredDensity', # [np.ndarray] state of the unmeasured qubits after the measurement
@@ -96,11 +101,16 @@ def measureTopNQubits(density: np.ndarray, basisDensity: [np.ndarray], N: int) -
         toMeasureDensity, unMeasuredDensity = partialTraceBoth(density, N, numQubits - N)
     
     probs = []
+    s = 0
 
     for b in basisDensity:
         probs.append(
-            abs(np.trace(np.matmul(density, b)))
+            abs(np.trace(np.matmul(toMeasureDensity, b)))
         )
+        s += probs[-1]
+
+    for i in range(0,len(probs)):
+        probs[i] /= s
     
     return MeasurementResult(unMeasuredDensity,toMeasureDensity,probs)
 

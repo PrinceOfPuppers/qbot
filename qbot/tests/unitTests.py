@@ -189,6 +189,40 @@ class testCircuit(unittest.TestCase):
             self.assertTrue(areEqual)
 
 
+    def test_bellPartialMeasurement(self):
+        circ = [
+            circuit.Measurement(0,2,0,1,basis.computation)
+        ]
+
+        for bell in basis.bell.density:
+            result = circ[0].apply(bell)
+            correct = [0.5,0.5]
+            for i in range(len(result.probs)):
+                self.assertAlmostEqual(result.probs[i],correct[i])
+
+    def test_superDenseCoding(self):
+        eprPair = basis.bell.density[0]
+
+        circs = [
+            [],
+            [circuit.Gate(0,2,gates.pauliX)],
+            [circuit.Gate(0,2,gates.pauliZ)],
+            [circuit.Gate(0,2,gates.pauliX), circuit.Gate(1,2,gates.pauliZ)],
+        ]
+        bellMeasure = circuit.Measurement(3,2,0,2,basis.bell)
+
+        for classicalBits, circ in enumerate(circs):
+            d = eprPair.copy()
+            for ele in circ:
+                d = ele.apply(d)
+            
+            result = bellMeasure.apply(d)
+            self.assertEqual(classicalBits,result.probs.index(1.0))
+
+
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
