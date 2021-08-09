@@ -6,6 +6,38 @@ import qbot.density as density
 import qbot.basis as basis
 import qbot.circuit as circuit
 
+################################################################
+# NOTE: all static control gates are only used for unittesting #
+#       control gates used in actual application are generated #
+################################################################
+
+# static 2 qubit gates
+cnot = np.array(
+    [
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0 ,0, 0, 1],
+        [0 ,0, 1, 0]
+    ]
+    ,dtype = complex
+)
+
+
+#static 3 qubit gates
+toffoli = np.array(
+    [
+        [1, 0, 0, 0, 0, 0 ,0, 0],
+        [0, 1, 0, 0, 0, 0 ,0, 0],
+        [0, 0, 1, 0, 0, 0 ,0, 0],
+        [0, 0, 0, 1, 0, 0 ,0, 0],
+        [0, 0, 0, 0, 1, 0 ,0, 0],
+        [0, 0, 0, 0, 0, 1 ,0, 0],
+        [0, 0, 0, 0, 0, 0 ,0, 1],
+        [0, 0, 0, 0, 0, 0 ,1, 0],
+    ]
+    ,dtype = complex
+)
+
 class testGates(unittest.TestCase):
     def test_swapCreationInverse(self):
         for numQubits in range(2,5):
@@ -19,7 +51,7 @@ class testGates(unittest.TestCase):
     def test_conditionalCreation(self):
         createdCnot = gates.genControlledGate(2,0,1,gates.pauliX)
         
-        areEqual = np.array_equal(gates.cnot,createdCnot)
+        areEqual = np.array_equal(cnot,createdCnot)
 
         self.assertTrue(areEqual)
 
@@ -28,13 +60,13 @@ class testGates(unittest.TestCase):
         # test exploits the fact a cnot with the target and control swapped is the same as the cnot 
         # in the hadamard transformed basis        
         createdCnot = gates.genControlledGate(2,0,1,gates.pauliX)
-        H2 = np.kron(gates.Hadamard,gates.Hadamard)
+        H2 = np.kron(gates.hadamard,gates.hadamard)
         
         createdCnotHadamardBasis = H2 @ createdCnot @ H2
         
         # we compare the above with simply a swapped cnot
         s = gates.genSwapGate(2,0,1)
-        swappedCnot = s @ gates.cnot @ s
+        swappedCnot = s @ cnot @ s
 
         areEqual = np.allclose(createdCnotHadamardBasis,swappedCnot)
         self.assertTrue(areEqual)
@@ -93,13 +125,13 @@ class testGates(unittest.TestCase):
 
         createdToffoli = gates.genControlledGate(3,0,1,createdCnot)
 
-        areEqual = np.array_equal(gates.toffoli,createdToffoli)
+        areEqual = np.array_equal(toffoli,createdToffoli)
 
         self.assertTrue(areEqual)
     
     def test_toffoli_genMultiControledGate(self):
         createdToffoli = gates.genMultiControlledGate(3,[0,1],2,gates.pauliX)
-        areEqual = np.array_equal(gates.toffoli,createdToffoli)
+        areEqual = np.array_equal(toffoli,createdToffoli)
 
         self.assertTrue(areEqual)
 
@@ -115,7 +147,7 @@ class testGates(unittest.TestCase):
         multiToffoli = gates.genMultiControlledGate(3,[1,2],0,gates.pauliX)
         multiToffoli = swap @ multiToffoli @ swap
 
-        areEqual = np.array_equal(gates.toffoli,createdToffoli) and np.array_equal(gates.toffoli,multiToffoli)
+        areEqual = np.array_equal(toffoli,createdToffoli) and np.array_equal(toffoli,multiToffoli)
         self.assertTrue(areEqual)
     
 
@@ -176,7 +208,7 @@ class testCircuit(unittest.TestCase):
         ]
         
         circ = [
-            circuit.Gate(0,2,gates.Hadamard),
+            circuit.Gate(0,2,gates.hadamard),
             circuit.Gate(1,2,gates.pauliX,1,[0])
         ]
 

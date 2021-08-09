@@ -6,14 +6,16 @@ class Basis:
         'name',
         'density',
         'kets',
-        'symbols'
+        'ketSymbols',
+        'gateSymbol'
     )
-    def __init__(self,name,kets,symbols):
-        if len(symbols) != len(kets):
-            raise Exception("basis must have same number of symbols and kets")
+    def __init__(self, name, kets, ketSymbols, gateSymbol):
+        if len(ketSymbols) != len(kets):
+            raise Exception("basis must have same number of ketSymbols and kets")
         self.name = name
         self.kets = kets
-        self.symbols = symbols
+        self.ketSymbols = ketSymbols
+        self.gateSymbol = gateSymbol
         self.density = []
         for ket in kets:
             self.density.append(
@@ -26,7 +28,8 @@ computation = Basis(
         np.array([1,0], dtype = complex),
         np.array([0,1], dtype = complex),
     ],
-    [ "|0〉", "|1〉" ]
+    [ "|0〉", "|1〉" ],
+    ' '
 )
 
 oneOverRoot2 = 2**(-1/2)
@@ -37,7 +40,8 @@ hadamard = Basis(
         oneOverRoot2*np.array([1,1] ,dtype=complex),
         oneOverRoot2*np.array([1,-1],dtype=complex)
     ],
-    [ "|+〉", "|-〉" ]
+    [ "|+〉", "|-〉" ],
+    'H'
 )
 
 bell = Basis(
@@ -48,6 +52,12 @@ bell = Basis(
         oneOverRoot2*np.array([1,0,0,-1],dtype=complex),
         oneOverRoot2*np.array([0,1,-1,0],dtype=complex),
     ],
-    [ "|β₀₀〉", "|β₀₁〉", "|β₁₀〉", "|β₁₁〉" ]
+    [ "|β₀₀〉", "|β₀₁〉", "|β₁₀〉", "|β₁₁〉" ],
+    'BELL'
 )
-allBasis = [computation, hadamard]
+# corrisponds to lables on measurement circuit elements
+basisDict = {
+    computation.gateSymbol: computation,
+    hadamard.gateSymbol: hadamard,
+    bell.gateSymbol: bell,
+}

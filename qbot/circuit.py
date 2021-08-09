@@ -11,7 +11,7 @@ def makeStateVec(stateList,coeff=1):
 #TODO: make common elements inherit from this struct
 class CircuitElement:
     __slots__ = (
-        'pos',
+        'x',
         'preNumQubits',
         'postNumQubits',
     )
@@ -29,9 +29,9 @@ class Measurement(CircuitElement):
         'postShiftGate',
         'ascii',
     )
-    def __init__(self, pos: int, preNumQubits: int, firstTargetQubit: int, numTargetQubits: int, basis: basis.Basis):
+    def __init__(self, x: int, preNumQubits: int, firstTargetQubit: int, numTargetQubits: int, basis: basis.Basis):
         postNumQubits = preNumQubits - numTargetQubits
-        super().__init__(pos, preNumQubits, postNumQubits)
+        super().__init__(x, preNumQubits, postNumQubits)
         self.basis = basis
         self.firstTargetQubit = firstTargetQubit
         self.numTargetQubits = numTargetQubits
@@ -58,7 +58,6 @@ class Measurement(CircuitElement):
 
 class Gate:
     __slots__ = (
-        'pos',
         'numQubits',
         'controlQubits',    # list of ints 
         'firstTargetQubit', # start of target bits (int)
@@ -66,7 +65,7 @@ class Gate:
         'operator',      # np.ndarray(2 dimensional) reperesenting the gate
         'ascii'        # np.ndarray of chars representing the gate
     )
-    def __init__(self, pos: int, numQubits: int, matrix: np.ndarray, firstTargetQubit: int = 0, controlQubits: [int] = None):
+    def __init__(self, x: int, numQubits: int, matrix: np.ndarray, firstTargetQubit: int = 0, controlQubits: [int] = None):
         
         if(controlQubits == None):
             controlQubits = []
@@ -78,8 +77,8 @@ class Gate:
         if(len(controlQubits) != len(set(controlQubits))):
             raise Exception("controlQubits must not contain duplicates")
 
-        
-        self.pos = pos
+        super().__init__(x, numQubits, numQubits)
+
         numTargetQubits = gates._checkGate(matrix) // 2
         numControlQubits = len(controlQubits)
 

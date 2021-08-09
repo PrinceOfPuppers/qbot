@@ -3,9 +3,9 @@ from qbot.helpers import ensureSquare
 from types import FunctionType
 
 # static 1 qubit gates
-Identity = np.eye(2)
+identity = np.eye(2)
 
-Hadamard = (1/np.sqrt(2)) * np.array(
+hadamard = (1/np.sqrt(2)) * np.array(
     [
         [1, 1],
         [1, -1]
@@ -37,37 +37,15 @@ pauliZ =  np.array(
     ,dtype = complex
 )
 
-################################################################
-# NOTE: all static control gates are only used for unittesting #
-#       control gates used in actual application are generated #
-################################################################
-
-# static 2 qubit gates
-cnot = np.array(
-    [
-        [1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0 ,0, 0, 1],
-        [0 ,0, 1, 0]
-    ]
-    ,dtype = complex
-)
+gateDict = {
+    "I": identity,
+    "H": hadamard,
+    "X": pauliX,
+    "Y": pauliY,
+    "Z": pauliZ,
+}
 
 
-#static 3 qubit gates
-toffoli = np.array(
-    [
-        [1, 0, 0, 0, 0, 0 ,0, 0],
-        [0, 1, 0, 0, 0, 0 ,0, 0],
-        [0, 0, 1, 0, 0, 0 ,0, 0],
-        [0, 0, 0, 1, 0, 0 ,0, 0],
-        [0, 0, 0, 0, 1, 0 ,0, 0],
-        [0, 0, 0, 0, 0, 1 ,0, 0],
-        [0, 0, 0, 0, 0, 0 ,0, 1],
-        [0, 0, 0, 0, 0, 0 ,1, 0],
-    ]
-    ,dtype = complex
-)
 
 def _checkGate(gate: np.ndarray):
     '''
