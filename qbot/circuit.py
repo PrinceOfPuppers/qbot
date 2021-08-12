@@ -15,8 +15,8 @@ class CircuitElement:
         'preNumQubits',
         'postNumQubits',
     )
-    def __init__(self, pos: int, preNumQubits: int, postNumQubits: int):
-        self.pos = pos
+    def __init__(self, x: int, preNumQubits: int, postNumQubits: int):
+        self.x = x
         self.preNumQubits = preNumQubits
         self.postNumQubits = postNumQubits
 
