@@ -15,15 +15,7 @@ horizontalLine = "─"
 
 circuitLeftMargin = 3
 
-def drawRails( railsWin, numRails ):
-    _, wx = railsWin.getmaxyx()
-    rail = wx*horizontalLine
-    for railNum in range(0, numRails):
-        railY = 3*railNum + 1
-        railsWin.addstr(railY, 0, rail)
-
-    railsWin.refresh()
-
+import curses
 
 def drawGate( circuitWin, gateX: int, gatefirstRail: int, gateNumRails: int, gateSymbol: int, gateControls:[int]):
     '''
@@ -66,11 +58,57 @@ def drawGate( circuitWin, gateX: int, gatefirstRail: int, gateNumRails: int, gat
         circuitWin.addch(pos, centerGate, controlSymbol)
         for y in range(pos+1,topOfGate):
             circuitWin.addch(y, centerGate, vertLine)
-        
-    circuitWin.refresh()
 
+class CircuitBox:
+    __slots__ = (
+        'x',
+        'y',
+        'width',
+        'height',
+        'numRails',
+        'placedGatesWin',
+        'toPlaceGateWin',
+        'railsWin',
+    )
+    def __init__(self,y,x,numRails,width):
+        height =  numRails*3 + 2
+        self.numRails = numRails
 
-import curses
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+        self.placedGatesWin = curses.newwin(height, width, y, x)
+        self.toPlaceGateWin = curses.newwin(height, width, y, x)
+        self.railsWin = curses.newwin(height, width, y, x)
+    
+    def refreshAll(self):
+        self.toPlaceGateWin.overlay(self.railsWin)
+        self.placedGatesWin.overlay(self.railsWin)
+        self.toPlaceGateWin.refresh()
+        self.placedGatesWin.refresh()
+        self.railsWin.refresh()
+    
+    def refreshRails(self):
+        self.railsWin.refresh()
+    
+    def refreshPlacedGates(self):
+        self.placedGatesWin.overlay(self.railsWin)
+        self.placedGatesWin.refresh()
+        self.railsWin.refresh()
+
+    def refreshToPlaceGate(self):
+        self.toPlaceGateWin.overlay(self.railsWin)
+        self.toPlaceGateWin.refresh()
+        self.railsWin.refresh()
+
+    def drawRails( self ):
+        rail = self.width*horizontalLine
+        for railNum in range(0, self.numRails):
+            railY = 3*railNum + 1
+            self.railsWin.addstr(railY, 0, rail)
+
 
 def main(stdscr):
     curses.use_default_colors()
@@ -78,27 +116,18 @@ def main(stdscr):
     # curses.init_pair(1, curses.COLOR_WHITE, -1)
     numRails = 5
     stdscr = curses.initscr()
-    circuitWinX = 1
-    circuitWinY = 0
-    circuitWinCols = 30
-    circuitWinLines =  numRails*3 + 2
-    circuitWin = curses.newwin(circuitWinLines, circuitWinCols, circuitWinY, circuitWinX)
-    railsWin =curses.newwin(circuitWinLines, circuitWinCols, circuitWinY, circuitWinX)
+    x =  1
+    y = 0
+    width = 30
+    circuitBox = CircuitBox(y,x,numRails,width)
+    from time import sleep
 
-
-    drawRails(railsWin, numRails)
-    drawGate(circuitWin,0,1,1,'H',[0,2,3])
-    circuitWin.overlay(railsWin)
-    railsWin.refresh()
-    circuitWin.refresh()
-    # circuitWin.addstr(4,3,"hello")
-    # circuitWin.refresh()
-    stdscr.refresh()
-
-
-
-
-
+    circuitBox.drawRails()
+    drawGate(circuitBox.placedGatesWin,0,1,1,'H',[0,2,3])
+    circuitBox.refreshPlacedGates()
+    sleep(1)
+    drawGate(circuitBox.toPlaceGateWin,5, 2, 1, 'X',[0] )
+    circuitBox.refreshToPlaceGate()
     # drawGate(scr,(0,0),0,1,1,'H',[])
     stdscr.getch()
     curses.endwin()

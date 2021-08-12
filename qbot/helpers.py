@@ -2,6 +2,13 @@ import numpy as np
 from math import sqrt
 from fractions import Fraction
 
+def boundsOverlap(min1, max1, min2, max2):
+    if max1 < min1 or max2 < min2:
+        raise Exception(f"Improper Bounds: min1 {min1}, max1 {max1}, min2 {min2}, max2 {max2}")
+    Min = min(min1, min2)
+    Max = max(max1, max2)
+    return (max1 - min1) + (max2 - min2) >= Max - Min
+
 def ensureSquare(array: np.ndarray):
     '''
     Throws Error if not square array
@@ -118,8 +125,4 @@ def stateVecStr(state:np.array):
         
 
 if __name__ == "__main__":
-    #print(len(symbols),len(vals))
-    print(2**(-1/2) *np.array([1,1j],dtype=complex))
-    print( stateVecStr(2**(-1/2) *np.array([1,1j],dtype=complex)) )
-    #for i in range(0,10):
-    #    print(complexToAlgebra( (1/3)/(sqrt(2*3.1415926535)*5)+ 8j*np.e/43)  )
+    print(boundsOverlap(4,5,4,4))

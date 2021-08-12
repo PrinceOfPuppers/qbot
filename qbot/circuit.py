@@ -3,6 +3,7 @@ import numpy as np
 import qbot.qgates as gates
 import qbot.density as d
 from qbot.helpers import stateVecStr
+from qbot.helpers import boundsOverlap
 import qbot.basis as basis 
 
 def makeStateVec(stateList,coeff=1):
@@ -12,19 +13,23 @@ def makeStateVec(stateList,coeff=1):
 class CircuitElement:
     __slots__ = (
         'x',
+        'firstTargetQubit',
+        'numTargetQubits',
+        'lastTargetQubit',
         'preNumQubits',
         'postNumQubits',
     )
-    def __init__(self, x: int, preNumQubits: int, postNumQubits: int):
+    def __init__(self, x: int, firstTargetQubit: int, numTargetQubits: int, preNumQubits: int, postNumQubits: int):
         self.x = x
+        self.firstTargetQubit = firstTargetQubit
+        self.numTargetQubits = numTargetQubits
+        self.lastTargetQubit = firstTargetQubit + numTargetQubits - 1
         self.preNumQubits = preNumQubits
         self.postNumQubits = postNumQubits
 
 class Measurement(CircuitElement):
     __slots__ =(
         'basis',
-        'firstTargetQubit',
-        'numTargetQubits',
         'preShiftGate',
         'postShiftGate',
     )
@@ -38,10 +43,8 @@ class Measurement(CircuitElement):
         if(numTargetQubits+firstTargetQubit >= preNumQubits):
             raise Exception("All Inputs to Measurement Must be on Qubits")
 
-        super().__init__(x, preNumQubits, postNumQubits)
+        super().__init__(x, firstTargetQubit, numTargetQubits, preNumQubits, postNumQubits)
         self.basis = basis
-        self.firstTargetQubit = firstTargetQubit
-        self.numTargetQubits = numTargetQubits
 
         self.preShiftGate = gates.genShiftGate(preNumQubits,True,firstTargetQubit)
 
@@ -65,8 +68,6 @@ class Gate(CircuitElement):
     __slots__ = (
         'numQubits',
         'controlQubits',    # list of ints 
-        'firstTargetQubit', # start of target bits (int)
-        'lastTargetQubit',   # end of target bits
         'operator',      # np.ndarray(2 dimensional) reperesenting the gate
     )
     def __init__(self, x: int, numQubits: int, matrix: np.ndarray, firstTargetQubit: int = 0, controlQubits: [int] = None):
@@ -91,10 +92,9 @@ class Gate(CircuitElement):
         if(len(controlQubits) != len(set(controlQubits))):
             raise Exception("controlQubits must not contain duplicates")
 
-        super().__init__(x, numQubits, numQubits)
+        super().__init__(x, firstTargetQubit, numTargetQubits, numQubits, numQubits)
         self.numQubits = numQubits
         
-        self.lastTargetQubit = firstTargetQubit + numTargetQubits - 1
         self.controlQubits = controlQubits.sort()
         
         if(len(controlQubits) == 0):
@@ -135,11 +135,20 @@ def deserializeCircuitElement(eleType: str, x: int, preNumQubits: int, firstTarg
     else:
         raise Exception("Invalid Circuit Element Type")
 
+def addElementToCircuit(circuit: [CircuitElement], element: CircuitElement):
+    '''
+    Appends element to circuit, throws error if element placement violates placement conditions
+    '''
+    for ele in circuit:
+        if ele.x == element.x:
+            raise Exception(f"Circuit Elements Cannot Share X pos {ele.x}")
+
+    circuit.append(element)
+
 
 def deserializeCircuit(circuitStr: str):
     circuitEleStrs = circuitStr.strip('\n').split('\n')
     circuit = []
-    circuitEleX = []
     for circuitEleStr in circuitEleStrs:
         try:
             args = [_types[min(i,_maxIndexTypes)](s) for i,s in enumerate(circuitEleStr.strip(' ').split(' '))]
@@ -149,17 +158,13 @@ def deserializeCircuit(circuitStr: str):
         if (len(args) < len(_types) - 1):
             raise Exception(f"Not Enough Args in Serialized Circuit Element: {args}")
 
-        if args[1] in circuitEleX:
-            raise Exception(f"Circuit Has Multiple Elements in the Same Posisiton {args[1]}")
-
-        circuit.append(deserializeCircuitElement(*args))
-        circuitEleX.append(args[1])
+        addElementToCircuit(circuit, deserializeCircuitElement(*args))
     return circuit
 
 
 def main():
     print(deserializeCircuit("Gate 3 5 1 - H\nGate 4 5 2 - X 0 1\n"))
     
-    
+
 if __name__ == "__main__":
     main()
