@@ -223,7 +223,7 @@ class testCircuit(unittest.TestCase):
 
     def test_bellPartialMeasurement(self):
         circ = [
-            circuit.Measurement(0,2,0,1,basis.computation)
+            circuit.Measurement(0,2,0,basis.computation)
         ]
 
         for bell in basis.bell.density:
@@ -241,7 +241,7 @@ class testCircuit(unittest.TestCase):
             [circuit.Gate(0,2,gates.pauliZ)],
             [circuit.Gate(0,2,gates.pauliX), circuit.Gate(1,2,gates.pauliZ)],
         ]
-        bellMeasure = circuit.Measurement(3,2,0,2,basis.bell)
+        bellMeasure = circuit.Measurement(3,2,0,basis.bell)
 
         for classicalBits, circ in enumerate(circs):
             d = eprPair.copy()

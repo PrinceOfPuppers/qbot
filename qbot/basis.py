@@ -6,6 +6,7 @@ class Basis:
         'name',
         'density',
         'kets',
+        'numQubits',
         'ketSymbols',
         'gateSymbol'
     )
@@ -14,6 +15,7 @@ class Basis:
             raise Exception("basis must have same number of ketSymbols and kets")
         self.name = name
         self.kets = kets
+        self.numQubits = kets[0].shape[0]
         self.ketSymbols = ketSymbols
         self.gateSymbol = gateSymbol
         self.density = []

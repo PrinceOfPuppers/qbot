@@ -16,7 +16,7 @@ horizontalLine = "─"
 circuitLeftMargin = 3
 
 def drawRails( railsWin, numRails ):
-    wy, wx = railsWin.getmaxyx()
+    _, wx = railsWin.getmaxyx()
     rail = wx*horizontalLine
     for railNum in range(0, numRails):
         railY = 3*railNum + 1
@@ -40,7 +40,7 @@ def drawGate( circuitWin, gateX: int, gatefirstRail: int, gateNumRails: int, gat
 
     for i in range(0,gateNumRails-1):
         for j in range(0,3):
-            scr.addstr(topOfGate + i*3 + j + 2, leftOfGate, mid)
+            circuitWin.addstr(topOfGate + i*3 + j + 2, leftOfGate, mid)
     
     bottomOfGate = topOfGate + 3*(gateNumRails-1) + 2 
     circuitWin.addstr(bottomOfGate, leftOfGate, bottom)

@@ -27,10 +27,17 @@ class Measurement(CircuitElement):
         'numTargetQubits',
         'preShiftGate',
         'postShiftGate',
-        'ascii',
     )
-    def __init__(self, x: int, preNumQubits: int, firstTargetQubit: int, numTargetQubits: int, basis: basis.Basis):
+    def __init__(self, x: int, preNumQubits: int, firstTargetQubit: int, basis: basis.Basis):
+        numTargetQubits = basis.numQubits
         postNumQubits = preNumQubits - numTargetQubits
+
+        if(firstTargetQubit < 0):
+            raise Exception("First Target Qubit Must be at Least 0")
+
+        if(numTargetQubits+firstTargetQubit >= preNumQubits):
+            raise Exception("All Inputs to Measurement Must be on Qubits")
+
         super().__init__(x, preNumQubits, postNumQubits)
         self.basis = basis
         self.firstTargetQubit = firstTargetQubit
@@ -54,37 +61,37 @@ class Measurement(CircuitElement):
         return result
 
 
-
-
-class Gate:
+class Gate(CircuitElement):
     __slots__ = (
         'numQubits',
         'controlQubits',    # list of ints 
         'firstTargetQubit', # start of target bits (int)
         'lastTargetQubit',   # end of target bits
         'operator',      # np.ndarray(2 dimensional) reperesenting the gate
-        'ascii'        # np.ndarray of chars representing the gate
     )
     def __init__(self, x: int, numQubits: int, matrix: np.ndarray, firstTargetQubit: int = 0, controlQubits: [int] = None):
-        
         if(controlQubits == None):
             controlQubits = []
 
+        if(firstTargetQubit < 0):
+            raise Exception("First Target Qubit Must be at Least 0")
+
+        numTargetQubits = gates._checkGate(matrix) // 2
+        if(numTargetQubits+firstTargetQubit >= numQubits):
+            raise Exception("All Inputs of Gate Must Be on Qubits")
+
         for controlQubit in controlQubits:
-            if(numQubits < controlQubit):
-                raise Exception("Control Qubits must be <= numQubits")
+
+            if(numQubits <= controlQubit):
+                raise Exception("Control Qubit Indices Must be < numQubits")
+
+            if(firstTargetQubit <= controlQubit and controlQubit < firstTargetQubit + numTargetQubits):
+                raise Exception("Control Qubit Must Not Be Target Qubit")
         
         if(len(controlQubits) != len(set(controlQubits))):
             raise Exception("controlQubits must not contain duplicates")
 
         super().__init__(x, numQubits, numQubits)
-
-        numTargetQubits = gates._checkGate(matrix) // 2
-        numControlQubits = len(controlQubits)
-
-        if(numQubits < numTargetQubits + numControlQubits):
-            raise Exception("numControlQubits + numTargetQubits(inferred from gate size) must be <= numQubits")
-
         self.numQubits = numQubits
         
         self.lastTargetQubit = firstTargetQubit + numTargetQubits - 1
@@ -101,20 +108,58 @@ class Gate:
         return self.operator @ density @ self.operator.conj().T
 
 
+# final type is for valist of control qubits (optional)
+_types = [str, int, int, int, str, str, int]
+_maxIndexTypes = len(_types) - 1
+
+def deserializeCircuitElement(eleType: str, x: int, preNumQubits: int, firstTargetQubit: int, 
+                              basisName: str, baseGateName: str, *args: int):
+
+    if ( eleType == "Gate" ):
+        try:
+            gate = gates.gateDict[baseGateName]
+        except:
+            raise Exception(f"Invalid Gate Type {baseGateName}") from None
+        controlQubits = [*args]
+
+        return Gate(x, preNumQubits, gate, firstTargetQubit, controlQubits)
+
+    elif (eleType == "Measurement"):
+        try:
+            measurementBasis = basis.basisDict[basisName]
+        except:
+            raise Exception(f"Invalid Basis {basisName}") from None
+
+        return Measurement(x, preNumQubits, firstTargetQubit, measurementBasis)
+
+    else:
+        raise Exception("Invalid Circuit Element Type")
+
+
+def deserializeCircuit(circuitStr: str):
+    circuitEleStrs = circuitStr.strip('\n').split('\n')
+    circuit = []
+    circuitEleX = []
+    for circuitEleStr in circuitEleStrs:
+        try:
+            args = [_types[min(i,_maxIndexTypes)](s) for i,s in enumerate(circuitEleStr.strip(' ').split(' '))]
+        except:
+            raise Exception(f"Error Parsing Serialized Circuit Element {circuitEleStr}") from None
+
+        if (len(args) < len(_types) - 1):
+            raise Exception(f"Not Enough Args in Serialized Circuit Element: {args}")
+
+        if args[1] in circuitEleX:
+            raise Exception(f"Circuit Has Multiple Elements in the Same Posisiton {args[1]}")
+
+        circuit.append(deserializeCircuitElement(*args))
+        circuitEleX.append(args[1])
+    return circuit
+
+
 def main():
+    print(deserializeCircuit("Gate 3 5 1 - H\nGate 4 5 2 - X 0 1\n"))
     
-    initalStates = [
-        makeStateVec([1,1j],2**(-1/2))
-    ]
-
-    initalProbs = [
-        1
-    ]
     
-    initalDensity = d.ketsToDensity(initalStates,initalProbs)
-    numQubits = 2
-    circuit = [
-    ]
-
 if __name__ == "__main__":
     main()
