@@ -1,9 +1,6 @@
+import curses
+import curses.panel
 
-'''
-┌───┐
-│ H │
-└───┘
-'''
 top = "┌───┐"
 mid = "│   ‎│" # contains U+2002, so ncurses overlay does not draw rail through it
 bottom = "└───┘"
@@ -18,8 +15,6 @@ circuitLeftMargin = 3
 # Ensures Space Between Gates
 xToColFactor = 3
 
-import curses
-import curses.panel
 
 def railToY(railNum):
     return railNum*3 + 2
@@ -122,7 +117,7 @@ class CircuitBox:
         self.railsWin.overlay(self.box)
         self.placedGatesWin.overlay(self.box)
         self.toPlaceGateWin.overlay(self.box)
-        self.box.refresh(self.y, self.x, 0, 0, self.height, self.width)
+        self.box.refresh(self.y, self.x, self.y, self.x, self.height, self.width)
 
     def drawRails( self ):
         self.railsWin.addstr(0,0,self._xNums)
@@ -139,8 +134,8 @@ def main(stdscr):
     numRails = 5
     maxHeight = 20
     stdscr = curses.initscr()
-    x =  1
-    y = 0
+    x =  3
+    y = 3
     width = 40
     circuitBox = CircuitBox(y,x,numRails,maxHeight,width)
     from time import sleep
