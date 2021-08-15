@@ -1,14 +1,39 @@
 import curses
 import curses.panel
 
+horizontalLine = "─"
+
+# gate drawing
 top = "┌───┐"
 mid = "│   ‎│" # contains U+2002, so ncurses overlay does not draw rail through it
 bottom = "└───┘"
 
-oneQubitMeasurement = "◁ "
 controlSymbol = "●"
 vertLine = "│"
-horizontalLine = "─"
+
+# measurement drawing
+oneQubitMeasurement = "◁ "
+
+# swap drawing 
+adjacentSwap = [
+    "╲  ╱─",
+    " ╲╱  ",
+    " ╱╲  ",
+    "╱  ╲─",
+]
+
+distantSwapStart = [
+    "╲   ╱",
+    " ╲ ╱ ",
+    "  v  " ,
+]
+distantSwapEnd = [
+    "  ^  ",
+    " ╱ ╲ ",
+    "╱   ╲",
+]
+
+swapCrossing ="┼" 
 
 circuitLeftMargin = 3
 
@@ -19,7 +44,7 @@ xToColFactor = 3
 def railToY(railNum):
     return railNum*3 + 2
 
-def drawGate( circuitWin, gateX: int, gateFirstRail: int, gateNumRails: int, gateSymbol: int, gateControls:[int]):
+def drawGate( circuitWin, gateX: int, gateFirstRail: int, gateNumRails: int, gateSymbol: str, gateControls:[int]):
     '''
     circuitDiagramCorner is the top left hand corner of the circuit diagram 
     '''
@@ -29,7 +54,7 @@ def drawGate( circuitWin, gateX: int, gateFirstRail: int, gateNumRails: int, gat
     firstRail = railToY(gateFirstRail)
     topOfGate = firstRail - 1
 
-    circuitWin.addstr(topOfGate, leftOfGate, top)
+    circuitWin.addstr(topOfGate, leftOfGate, top) 
     circuitWin.addstr(topOfGate+1, leftOfGate, mid)
 
     for i in range(0,gateNumRails-1):
@@ -61,6 +86,76 @@ def drawGate( circuitWin, gateX: int, gateFirstRail: int, gateNumRails: int, gat
         for y in range(pos+1,topOfGate):
             circuitWin.addch(y, centerGate, vertLine)
 
+# def drawMeasurement( circuitWin, mx: int, mFirstRail: int, mNumRails: int, mSymbol: str ):
+#     leftOfM = xToColFactor*mx + circuitLeftMargin - 2
+    
+#     firstRail = railToY(mFirstRail)
+
+#     if mNumRails == 1:
+#         circuitWin.addstr(firstRail, leftOfM, oneQubitMeasurement + mSymbol)
+    
+#     elif mNumRails == 2:
+
+# swap drawings
+# 
+# distant swap
+# ──╲   ╱────
+#    ╲ ╱
+#     v 
+# ────┼─────
+#     │ 
+#     │
+# ────┼─────
+#     ^
+#    ╱ ╲
+# ──╱   ╲───
+# 
+# adjacent swap
+# ──╲  ╱────
+#    ╲╱
+#    ╱╲
+# ──╱  ╲────
+
+def drawSwap(circuitWin, swapX: int, swapFirstRail: int, swapSecondRail: int):
+    if(swapFirstRail == swapSecondRail):
+        return
+
+    swapFirstRail = min(swapFirstRail,swapSecondRail)
+    swapSecondRail = max(swapFirstRail,swapSecondRail)
+
+    firstRail = railToY(swapFirstRail)
+    secondRail = railToY(swapSecondRail)
+
+    leftOfSwap = xToColFactor*swapX + circuitLeftMargin - 2
+
+    if( (swapSecondRail - swapFirstRail) == 1 ):
+        for i,s in enumerate(adjacentSwap):
+            circuitWin.addstr(firstRail + i, leftOfSwap, s)
+        return
+ 
+
+    midSwap = leftOfSwap + len(distantSwapStart[0])//2
+
+    for i,s in enumerate(distantSwapStart):
+        circuitWin.addstr(firstRail + i, leftOfSwap, s)
+
+    railUnderFirstY = railToY(swapFirstRail + 1)
+    circuitWin.addstr(railUnderFirstY , midSwap, swapCrossing)
+
+    y = railUnderFirstY + 1
+    for _ in range(0, swapSecondRail - swapFirstRail - 2):
+        circuitWin.addstr(y , midSwap, vertLine)
+        circuitWin.addstr(y+1 , midSwap, vertLine)
+        circuitWin.addstr(y+2 , midSwap, swapCrossing)
+        y+=3
+    
+    for i,s in enumerate(distantSwapEnd):
+        circuitWin.addstr(y + i, leftOfSwap, s)
+    
+    return
+        
+
+ 
 class CircuitBox:
     __slots__ = (
         'x',
@@ -126,41 +221,3 @@ class CircuitBox:
             railY = railToY(railNum)
             self.railsWin.addstr(railY, 0, self._rail)
 
-
-def main(stdscr):
-    curses.use_default_colors()
-    curses.can_change_color() == False
-    # curses.init_pair(1, curses.COLOR_WHITE, -1)
-    numRails = 5
-    maxHeight = 20
-    stdscr = curses.initscr()
-    x =  3
-    y = 3
-    width = 40
-    circuitBox = CircuitBox(y,x,numRails,maxHeight,width)
-    from time import sleep
-
-    circuitBox.drawRails()
-    drawGate(circuitBox.placedGatesWin,0,1,1,'H',[0,2,3])
-    drawGate(circuitBox.placedGatesWin,2,1,2,'H',[0,3])
-    circuitBox.refresh()
-    sleep(1)
-    drawGate(circuitBox.toPlaceGateWin,0, 1, 2, 'X',[0] )
-    circuitBox.refresh()
-    sleep(1)
-    circuitBox.placedGatesWin.clear()
-    circuitBox.refresh()
-    for i in range(0,21):
-        sleep(0.1)
-        circuitBox.xOffset = i
-        circuitBox.yOffset = i
-        circuitBox.refresh()
-    circuitBox.toPlaceGateWin.clear()
-
-    # circuitBox.railsWin.touchwin()
-
-    stdscr.getch()
-    curses.endwin()
-
-if __name__ == "__main__":
-    curses.wrapper(main)
