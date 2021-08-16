@@ -8,7 +8,7 @@ class Basis:
         'kets',
         'numQubits',
         'ketSymbols',
-        'gateSymbol'
+        'gateSymbol' # used for circuit representation of measurement
     )
     def __init__(self, name, kets, ketSymbols, gateSymbol):
         if len(ketSymbols) != len(kets):
@@ -31,7 +31,7 @@ computation = Basis(
         np.array([0,1], dtype = complex),
     ],
     [ "|0〉", "|1〉" ],
-    ' '
+    '∡'
 )
 
 oneOverRoot2 = 2**(-1/2)
@@ -43,7 +43,7 @@ hadamard = Basis(
         oneOverRoot2*np.array([1,-1],dtype=complex)
     ],
     [ "|+〉", "|-〉" ],
-    'H'
+    '∡ ±'
 )
 
 bell = Basis(
@@ -55,7 +55,7 @@ bell = Basis(
         oneOverRoot2*np.array([0,1,-1,0],dtype=complex),
     ],
     [ "|β₀₀〉", "|β₀₁〉", "|β₁₀〉", "|β₁₁〉" ],
-    'BELL'
+    '∡ β'
 )
 # corrisponds to lables on measurement circuit elements
 basisDict = {

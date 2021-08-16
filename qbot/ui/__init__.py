@@ -4,6 +4,7 @@ from time import sleep
 
 def main(stdscr):
     curses.use_default_colors()
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
     curses.can_change_color() == False
     # curses.init_pair(1, curses.COLOR_WHITE, -1)
     numRails = 5
@@ -15,8 +16,9 @@ def main(stdscr):
     circuitBox = CircuitBox(y,x,numRails,maxHeight,width)
 
     circuitBox.drawRails()
-    drawGate(circuitBox.placedGatesWin,0,1,1,'H',[0,2,3])
-    drawGate(circuitBox.placedGatesWin,2,1,2,'H',[0,3])
+    drawGate(circuitBox.placedGatesWin,0,1,1,'∡ ±',[0,2,3])
+    drawGate(circuitBox.placedGatesWin,1,1,1,'H',[0,3])
+    drawGate(circuitBox.toPlaceGateWin,2, 1, 1, 'X',[0] )
     circuitBox.refresh()
     sleep(1)
     drawGate(circuitBox.toPlaceGateWin,0, 1, 2, 'X',[0] )
@@ -25,7 +27,7 @@ def main(stdscr):
     circuitBox.placedGatesWin.clear()
     circuitBox.refresh()
     sleep(1)
-    drawSwap(circuitBox.placedGatesWin, 3, 0, 3)
+    drawSwap(circuitBox.placedGatesWin, 3, 0, 1)
     circuitBox.refresh()
     sleep(1)
     for i in range(0,21):
@@ -35,7 +37,7 @@ def main(stdscr):
         circuitBox.refresh()
     circuitBox.toPlaceGateWin.clear()
 
-    # circuitBox.railsWin.touchwin()
+    circuitBox.railsWin.touchwin()
 
     stdscr.getch()
     curses.endwin()

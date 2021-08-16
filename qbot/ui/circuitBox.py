@@ -25,30 +25,36 @@ adjacentSwap = [
 distantSwapStart = [
     "╲   ╱",
     " ╲ ╱ ",
-    "  v  " ,
+    "  V  " ,
 ]
 distantSwapEnd = [
-    "  ^  ",
+    "  Λ  ",
     " ╱ ╲ ",
     "╱   ╲",
 ]
 
-swapCrossing ="┼" 
+swapCrossing = "┼" #"╫" 
+swapVert = vertLine #"║"
 
 circuitLeftMargin = 3
 
 # Ensures Space Between Gates
-xToColFactor = 3
+xToColFactor = 5
 
 
 def railToY(railNum):
     return railNum*3 + 2
+def gateXToWinX(x):
+    return xToColFactor*x + circuitLeftMargin -2
 
 def drawGate( circuitWin, gateX: int, gateFirstRail: int, gateNumRails: int, gateSymbol: str, gateControls:[int]):
     '''
     circuitDiagramCorner is the top left hand corner of the circuit diagram 
     '''
-    leftOfGate = xToColFactor*gateX + circuitLeftMargin -2
+    # replace spaces with U+2002 to occlude rails
+    gateSymbol = gateSymbol.replace(" "," ")
+
+    leftOfGate = gateXToWinX(gateX)
     centerGate = leftOfGate + 2
 
     firstRail = railToY(gateFirstRail)
@@ -65,7 +71,15 @@ def drawGate( circuitWin, gateX: int, gateFirstRail: int, gateNumRails: int, gat
     circuitWin.addstr(bottomOfGate, leftOfGate, bottom)
     
     # add gate symbol
-    circuitWin.addch((topOfGate + (3*gateNumRails - 1)//2), centerGate, gateSymbol)
+    symbolLines = (len(gateSymbol) - 1) // 3 + 1
+    firstSymbolLine = topOfGate + (3*gateNumRails - 1)//2 - (symbolLines-1) // 2
+    for line in range(0,symbolLines):
+        firstChar = line*3
+        lenLine = len(gateSymbol[firstChar: firstChar + 3])
+        for i,char in enumerate(gateSymbol[firstChar: firstChar + 3]):
+            circuitWin.addch(firstSymbolLine + line, leftOfGate + i + 1 + (lenLine == 1),char)
+
+    # circuitWin.addch((topOfGate + (3*gateNumRails - 1)//2), centerGate, gateSymbol)
 
     # add controls
     gateControls.sort()
@@ -124,13 +138,12 @@ def drawSwap(circuitWin, swapX: int, swapFirstRail: int, swapSecondRail: int):
     swapSecondRail = max(swapFirstRail,swapSecondRail)
 
     firstRail = railToY(swapFirstRail)
-    secondRail = railToY(swapSecondRail)
 
-    leftOfSwap = xToColFactor*swapX + circuitLeftMargin - 2
+    leftOfSwap = gateXToWinX(swapX)
 
     if( (swapSecondRail - swapFirstRail) == 1 ):
         for i,s in enumerate(adjacentSwap):
-            circuitWin.addstr(firstRail + i, leftOfSwap, s)
+            circuitWin.addstr(firstRail + i, leftOfSwap, s )
         return
  
 
@@ -144,8 +157,8 @@ def drawSwap(circuitWin, swapX: int, swapFirstRail: int, swapSecondRail: int):
 
     y = railUnderFirstY + 1
     for _ in range(0, swapSecondRail - swapFirstRail - 2):
-        circuitWin.addstr(y , midSwap, vertLine)
-        circuitWin.addstr(y+1 , midSwap, vertLine)
+        circuitWin.addstr(y , midSwap, swapVert)
+        circuitWin.addstr(y+1 , midSwap, swapVert)
         circuitWin.addstr(y+2 , midSwap, swapCrossing)
         y+=3
     
@@ -196,9 +209,9 @@ class CircuitBox:
         self._rail = self.width*horizontalLine
         self._xNums = [circuitLeftMargin*" "+"0"]
 
-        for i in range(1,(self.width)//xToColFactor - xToColFactor):
+        for i in range(1,(self.width)//(xToColFactor-1) - circuitLeftMargin):
             self._xNums.append(str(i))
-        self._xNums = (xToColFactor*" ").join(self._xNums)
+        self._xNums = ((xToColFactor-1)*" ").join(self._xNums)
     
     def refresh(self):
 
