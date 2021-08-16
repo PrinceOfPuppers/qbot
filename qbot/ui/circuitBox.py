@@ -44,8 +44,9 @@ xToColFactor = 5
 
 def railToY(railNum):
     return railNum*3 + 2
+
 def gateXToWinX(x):
-    return xToColFactor*x + circuitLeftMargin -2
+    return xToColFactor*x + circuitLeftMargin - 2
 
 def drawGate( circuitWin, gateX: int, gateFirstRail: int, gateNumRails: int, gateSymbol: str, gateControls:[int]):
     '''
@@ -173,30 +174,36 @@ class CircuitBox:
     __slots__ = (
         'x',
         'y',
-        'xOffset',
-        'yOffset',
         'width',
         'height',
         'numRails',
+        'gateWidths',
+        'xOffset', # box variables
+        'yOffset',
+        'boxWidth',
+        'boxHeight',
         'placedGatesWin',
         'toPlaceGateWin',
         'railsWin',
         'box',
         '_rail',
+        '_xNumsList',
         '_xNums'
     )
-    def __init__(self,y,x,numRails, maxHeight,width):
-        height =  numRails*3 + 2
+    def __init__(self, y, x, numRails, gateWidths):
+        height = railToY(numRails)
+        width = gateXToWinX(gateWidths) +30
+
         self.numRails = numRails
+        self.gateWidths = gateWidths
 
         self.x = x
         self.y = y
         self.width = width
         self.height = height
 
-        if height > maxHeight:
-            self.height = maxHeight
-
+        self.boxWidth = width
+        self.boxHeight = height
         self.xOffset = 0
         self.yOffset = 0
 
@@ -205,27 +212,63 @@ class CircuitBox:
         self.railsWin = curses.newwin(height, width, y, x)
         self.box = curses.newpad(height, width)
 
+        self._createRailsStr()
 
+        self._xNumsList = [circuitLeftMargin*" "+"0"]
+        self._createTopNumsStr()
+
+    def _createTopNumsStr(self):
+        currentLen = len(self._xNumsList)
+        newLen = (self.width -  circuitLeftMargin)//(xToColFactor)
+        if newLen > currentLen:
+            for i in range(currentLen,newLen):
+                num = str(i)
+                self._xNumsList.append((xToColFactor-len(num))*" " + num)
+
+        self._xNums = "".join(self._xNumsList[0:newLen])
+
+    def _createRailsStr(self):
         self._rail = self.width*horizontalLine
-        self._xNums = [circuitLeftMargin*" "+"0"]
 
-        for i in range(1,(self.width)//(xToColFactor-1) - circuitLeftMargin):
-            self._xNums.append(str(i))
-        self._xNums = ((xToColFactor-1)*" ").join(self._xNums)
-    
     def refresh(self):
-
-        if self.yOffset > self.height:
-            self.yOffset = self.height
-        if self.xOffset > self.width:
-            self.xOffset = self.width
+        if self.yOffset > self.height - self.boxHeight:
+            self.yOffset = self.height - self.boxHeight
+            self.yOffset = max(0,self.yOffset)
+        if self.xOffset >= self.width - self.boxWidth:
+            self.xOffset = self.width - self.boxWidth
+            self.xOffset = max(0,self.xOffset)
 
         self.box.clear()
-        self.box.noutrefresh(self.y, self.x, self.yOffset, self.xOffset, self.height, self.width)
+
         self.railsWin.overlay(self.box)
         self.placedGatesWin.overlay(self.box)
         self.toPlaceGateWin.overlay(self.box)
-        self.box.refresh(self.y, self.x, self.y, self.x, self.height, self.width)
+
+        self.box.refresh(self.yOffset,self.xOffset,0,0, self.boxHeight, self.boxWidth)
+
+    
+    def resizeCircuit(self, numRails, gateWidths):
+        '''
+        change the number of rails or the width of the circuit in units of gate widths
+        -1 for either parameter will leave it as it is
+        '''
+        height = self.height if numRails == -1 else railToY(numRails)
+        width = self.width if gateWidths == -1 else gateXToWinX(gateWidths)
+        
+        self.height = height
+        self.width = width
+
+        self.railsWin.resize(height,width)
+        self.placedGatesWin.resize(height,width)
+        self.toPlaceGateWin.resize(height, width)
+
+        self._createTopNumsStr()
+        self._createRailsStr()
+        self.drawRails()
+
+    def resizeBox(self, height, width):
+        self.boxHeight = height
+        self.boxWidth = width
 
     def drawRails( self ):
         self.railsWin.addstr(0,0,self._xNums)
