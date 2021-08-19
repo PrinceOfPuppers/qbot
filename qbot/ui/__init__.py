@@ -7,12 +7,12 @@ def main(stdscr):
     curses.curs_set(0)
     curses.use_default_colors()
     curses.nocbreak()
-    numRails = 5
+    numRails = 6
     stdscr = curses.initscr()
-    x =  0
+    x =  1
     y = 1
     width = 30
-    circuitBox = CircuitBox(y,x,numRails,width,4)
+    circuitBox = CircuitBox(stdscr, y, x, numRails, width, 3)
 
     circuitBox.drawRails()
     drawGate(circuitBox.placedGatesWin,0,1,1,'∡ ±',[0,2,3])
