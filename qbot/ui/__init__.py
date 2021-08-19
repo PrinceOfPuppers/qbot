@@ -1,4 +1,5 @@
 from qbot.ui.circuitBox import CircuitBox, drawGate, drawSwap
+from qbot.ui.statusBar import StatusBar
 import curses
 from time import sleep
 
@@ -7,10 +8,14 @@ def main(stdscr):
     curses.curs_set(0)
     curses.use_default_colors()
     curses.nocbreak()
+
+    statusBar = StatusBar(stdscr)
+    statusBar.refresh(stdscr)
+
     numRails = 6
     stdscr = curses.initscr()
-    x =  1
-    y = 1
+    x = 0 
+    y = 2
     width = 30
     circuitBox = CircuitBox(stdscr, y, x, numRails, width, 3)
 
