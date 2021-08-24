@@ -67,6 +67,31 @@ def partialTraceBoth(density,nQubits,mQubits):
         )
     )
 
+def partialTraceArbitraryBipartide(density: np.ndarray, numQubits: int, systemAQubits: [int]):
+    size = ensureSquare(density)
+    systemAQubits.sort()
+
+    systemBQubits = [i for i in range(0,numQubits) if i not in systemAQubits]
+
+    numSysAQubits = len(systemAQubits)
+    numSysBQubits = len(systemBQubits)
+
+    def stateMap(state):
+        res = 0
+        for i,aQubit in enumerate(systemAQubits):
+            mask = 1 << aQubit
+            res |= ((mask & state) != 0) << i
+        for i,bQubit in enumerate(systemBQubits):
+            mask = 1 << bQubit
+            res |= ((mask & state)!= 0) << (numQubits - 1 - i)
+        return res
+
+    swapGate = gates.genArbitrarySwap(size, stateMap)
+
+    swappedDensity = swapGate @ density @ swapGate.conj().T
+
+    return partialTraceBoth(swappedDensity,numSysAQubits,numSysBQubits)
+
 def combineDensity(d1: np.ndarray, d2: np.ndarray):
     return np.kron(d1,d2)
 

@@ -1,6 +1,13 @@
 import numpy as np
-from math import sqrt
+from math import sqrt, frexp
 from fractions import Fraction
+
+def printBits(x, numBits):
+    fmt = f'0{numBits}b'
+    print(format(x, fmt))
+    
+def log2(x):
+    return frexp(x)[1] - 1
 
 def boundsOverlap(min1, max1, min2, max2):
     if max1 < min1 or max2 < min2:

@@ -1,5 +1,5 @@
 import numpy as np
-from qbot.helpers import ensureSquare
+from qbot.helpers import ensureSquare, log2
 from types import FunctionType
 
 # static 1 qubit gates
@@ -183,7 +183,7 @@ def genGateForFullHilbertSpace(numQubits: int, firstTargetQubit: int, gate: np.n
     '''
     size = _checkGate(gate)
 
-    gateNumQubits = int(round(np.log2(size)))
+    gateNumQubits = log2(size)
 
 
     if(firstTargetQubit + gateNumQubits - 1 >= numQubits):
@@ -294,7 +294,7 @@ def genMultiControlledGate(numQubits:int, controlQubits:[int], firstTargetQubit:
     targetSize = _checkGate(gate)
     
     numControls = len(controlQubits)
-    numTargets = targetSize // 2
+    numTargets = log2(targetSize)
 
     controlSize = (2**numControls-1)*targetSize
     newSize = controlSize + targetSize
