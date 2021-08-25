@@ -2,8 +2,7 @@ import numpy as np
 
 import qbot.qgates as gates
 import qbot.density as d
-from qbot.helpers import stateVecStr
-from qbot.helpers import boundsOverlap
+from qbot.helpers import boundsOverlap, log2, stateVecStr
 import qbot.basis as basis 
 
 def makeStateVec(stateList,coeff=1):
@@ -39,8 +38,7 @@ class Measurement(CircuitElement):
 
         if(firstTargetQubit < 0):
             raise Exception("First Target Qubit Must be at Least 0")
-
-        if(numTargetQubits+firstTargetQubit >= preNumQubits):
+        if(numTargetQubits+firstTargetQubit > preNumQubits):
             raise Exception("All Inputs to Measurement Must be on Qubits")
 
         super().__init__(x, firstTargetQubit, numTargetQubits, preNumQubits, postNumQubits)
@@ -77,8 +75,11 @@ class Gate(CircuitElement):
         if(firstTargetQubit < 0):
             raise Exception("First Target Qubit Must be at Least 0")
 
-        numTargetQubits = gates._checkGate(matrix) // 2
-        if(numTargetQubits+firstTargetQubit >= numQubits):
+        numTargetQubits = log2(gates._checkGate(matrix))
+        if(numTargetQubits+firstTargetQubit > numQubits):
+            print(f"{numTargetQubits=}")
+            print(f"{firstTargetQubit=}")
+            print(f"{numQubits=}")
             raise Exception("All Inputs of Gate Must Be on Qubits")
 
         for controlQubit in controlQubits:

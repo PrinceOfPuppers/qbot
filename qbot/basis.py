@@ -1,5 +1,6 @@
 import numpy as np
 from qbot.density import ketsToDensity
+from qbot.helpers import log2
 
 class Basis:
     __slots__ = (
@@ -15,7 +16,7 @@ class Basis:
             raise Exception("basis must have same number of ketSymbols and kets")
         self.name = name
         self.kets = kets
-        self.numQubits = kets[0].shape[0]
+        self.numQubits = log2(kets[0].shape[0])
         self.ketSymbols = ketSymbols
         self.gateSymbol = gateSymbol
         self.density = []
