@@ -151,27 +151,99 @@ class testGates(unittest.TestCase):
         self.assertTrue(areEqual)
     
 
+class testPartialTrace(unittest.TestCase):
+    def test_compareMethods1(self):
+        state = density.ketsToDensity([
+                np.array([0,1,0,0,0,0,0,0],dtype = complex),
+                np.array([0,0,0,0,0,1,0,0],dtype = complex),
+                np.array([0,0,1/(2**(1/2)),0,0,1/(2**(1/2)),0,0],dtype = complex),
+            ],
+            [0.5,0.25,0.25]
+        )
+        a1,b1 = density.partialTraceBoth(state, 2, 1)
+        a2,b2 = density.partialTraceArbitrary(state, 3, [0,1])
+
+        self.assertTrue(np.array_equal(a1, a2))
+        self.assertTrue(np.array_equal(b1, b2))
+
+    def test_compareMethods2(self):
+        state = density.ketsToDensity([
+                np.array([0,1,0,0,0,0,0,0],dtype = complex),
+                np.array([0,0,0,0,0,0,0,1],dtype = complex),
+                np.array([0,0,1,0,0,0,0,0],dtype = complex),
+            ],
+            [0.5, 0.15, 0.35]
+        )
+        a1,b1 = density.partialTraceBoth(state,1,2)
+        a2,b2 = density.partialTraceArbitrary(state, 3, [0])
+        self.assertTrue(np.array_equal(a1, a2))
+        self.assertTrue(np.array_equal(b1, b2))
+
+    def test_compareMethods3(self):
+        state = density.ketsToDensity([
+                np.array([0,1,0,0,0,0,0,0],dtype = complex),
+                np.array([0,0,0,0,0,0,0,1],dtype = complex),
+                np.array([0,0,1,0,0,0,0,0],dtype = complex),
+            ],
+            [0.5, 0.15, 0.35]
+        )
+        b1,a1 = density.partialTraceBoth(state,1,2)
+        a2,b2 = density.partialTraceArbitrary(state, 3, [1,2])
+        self.assertTrue(np.array_equal(a1, a2))
+        self.assertTrue(np.array_equal(b1, b2))
+
 class testMeasurement(unittest.TestCase):
     def test_computationComputation1(self):
         state = density.ketsToDensity([basis.computation.kets[0]])
         measurementResult = density.measureTopNQubits(state,basis.computation.density,1)
-        self.assertTrue(measurementResult.probs,[1.0,0])
+        self.assertListEqual(measurementResult.probs,[1.0,0])
 
     def test_computationComputation2(self):
         state = density.ketsToDensity(basis.computation.kets,[0.5,0.5])
         measurementResult = density.measureTopNQubits(state,basis.computation.density,1)
-        self.assertTrue(measurementResult.probs,[0.5,0.5])
+        self.assertListEqual(measurementResult.probs,[0.5,0.5])
 
     def test_hadamardComputation(self):
         state = density.ketsToDensity([basis.hadamard.kets[0]])
         measurementResult = density.measureTopNQubits(state,basis.computation.density,1)
-        self.assertTrue(measurementResult.probs,[0.5,0.5])
+        self.assertListEqual(measurementResult.probs,[0.5,0.5])
 
     def test_bellBell(self):
         state = density.ketsToDensity([basis.bell.kets[0]])
         measurementResult = density.measureTopNQubits(state,basis.bell.density,2)
-        self.assertTrue(measurementResult.probs,[1.0,0,0,0])
+        self.assertListEqual(measurementResult.probs,[1.0,0,0,0])
+
+    def test_measureArbitrary1(self):
+        state = density.ketsToDensity([basis.bell.kets[0]])
+        measurementResult = density.measureArbitrary(state, basis.hadamard.density, [0])
+        self.assertListEqual(measurementResult.probs,[0.5,0.5])
     
+    def test_measureArbitrary2(self):
+        state = density.ketsToDensity([basis.bell.kets[0]])
+        measurementResult = density.measureArbitrary(state, basis.bell.density, [1,0])
+        self.assertListEqual(measurementResult.probs,[1.0,0,0,0])
+
+    def test_measureArbitrary3(self):
+        state = density.ketsToDensity([basis.bell.kets[0]])
+        measurementResult = density.measureArbitrary(state, basis.hadamard.density, [1])
+        self.assertListEqual(measurementResult.probs,[0.5, 0.5])
+    
+    def test_measureArbitrary4(self):
+        state = density.ketsToDensity([
+                np.array([0,1,0,0,0,0,0,0],dtype = complex),
+            ]
+        )
+        measurementResult = density.measureArbitrary(state, basis.computation2D.density, [1, 2])
+        self.assertListEqual(measurementResult.probs,[0, 1, 0, 0])
+
+    def test_measureArbitrary5(self):
+        state = density.ketsToDensity([
+                np.array([0,0,1,0,0,0,0,0],dtype = complex),
+            ]
+        )
+        measurementResult = density.measureArbitrary(state, basis.computation2D.density, [0, 2])
+        self.assertListEqual(measurementResult.probs,[1, 0, 0, 0])
+
     # def test_removeFirstNQubits1(self):
     #     rmGate = gates.genRemoveFirstNQubitsGate(3,2)
     #     ket = np.array([1,0,0,0,0,0,0,0], dtype = complex)
@@ -198,63 +270,80 @@ class testMeasurement(unittest.TestCase):
     #     # areEqual = np.array_equal(correctResult, generatedResult)
     #     # self.assertTrue(areEqual)
 
-class testCircuit(unittest.TestCase):
-    def test_bellCreation(self):
-        ics = [
-            density.ketToDensity(np.array([1,0,0,0], dtype= complex)),
-            density.ketToDensity(np.array([0,1,0,0], dtype= complex)),
-            density.ketToDensity(np.array([0,0,1,0], dtype= complex)),
-            density.ketToDensity(np.array([0,0,0,1], dtype= complex)),
-        ]
+
+# class testCircuit(unittest.TestCase):
+#     def test_bellCreation(self):
+#         ics = [
+#             density.ketToDensity(np.array([1,0,0,0], dtype= complex)),
+#             density.ketToDensity(np.array([0,1,0,0], dtype= complex)),
+#             density.ketToDensity(np.array([0,0,1,0], dtype= complex)),
+#             density.ketToDensity(np.array([0,0,0,1], dtype= complex)),
+#         ]
         
-        circ = [
-            circuit.Gate(0,2,gates.hadamard),
-            circuit.Gate(1,2,gates.pauliX,1,[0])
-        ]
+#         circ = [
+#             circuit.Gate(0,2,gates.hadamard),
+#             circuit.Gate(1,2,gates.pauliX,1,[0])
+#         ]
 
-        circ.sort(key = lambda ele: ele.pos)
+#         circ.sort(key = lambda ele: ele.pos)
 
-        for i,ic in enumerate(ics):
-            for ele in circ:
-                ic = ele.apply(ic)
-            areEqual = np.allclose(ic,basis.bell.density[i])
-            self.assertTrue(areEqual)
+#         for i,ic in enumerate(ics):
+#             for ele in circ:
+#                 ic = ele.apply(ic)
+#             areEqual = np.allclose(ic,basis.bell.density[i])
+#             self.assertTrue(areEqual)
 
 
-    def test_bellPartialMeasurement(self):
-        circ = [
-            circuit.Measurement(0,2,0,basis.computation)
-        ]
+#     def test_bellPartialMeasurement(self):
+#         circ = [
+#             circuit.Measurement(0,2,0,basis.computation)
+#         ]
 
-        for bell in basis.bell.density:
-            result = circ[0].apply(bell)
-            correct = [0.5,0.5]
-            for i in range(len(result.probs)):
-                self.assertAlmostEqual(result.probs[i],correct[i])
+#         for bell in basis.bell.density:
+#             result = circ[0].apply(bell)
+#             correct = [0.5,0.5]
+#             for i in range(len(result.probs)):
+#                 self.assertAlmostEqual(result.probs[i],correct[i])
 
-    def test_superDenseCoding(self):
-        eprPair = basis.bell.density[0]
+#     def test_superDenseCoding(self):
+#         eprPair = basis.bell.density[0]
 
-        circs = [
-            [],
-            [circuit.Gate(0,2,gates.pauliX)],
-            [circuit.Gate(0,2,gates.pauliZ)],
-            [circuit.Gate(0,2,gates.pauliX), circuit.Gate(1,2,gates.pauliZ)],
-        ]
-        bellMeasure = circuit.Measurement(3,2,0,basis.bell)
+#         circs = [
+#             [],
+#             [circuit.Gate(0,2,gates.pauliX)],
+#             [circuit.Gate(0,2,gates.pauliZ)],
+#             [circuit.Gate(0,2,gates.pauliX), circuit.Gate(1,2,gates.pauliZ)],
+#         ]
+#         bellMeasure = circuit.Measurement(3,2,0,basis.bell)
 
-        for classicalBits, circ in enumerate(circs):
-            d = eprPair.copy()
-            for ele in circ:
-                d = ele.apply(d)
+#         for classicalBits, circ in enumerate(circs):
+#             d = eprPair.copy()
+#             for ele in circ:
+#                 d = ele.apply(d)
             
-            result = bellMeasure.apply(d)
-            self.assertEqual(classicalBits,result.probs.index(1.0))
+#             result = bellMeasure.apply(d)
+#             self.assertEqual(classicalBits,result.probs.index(1.0))
 
 
 
 
+def test_measureArbitrary4():
+    state = density.ketsToDensity([
+            np.array([0,1,0,0,0,0,0,0],dtype = complex),
+        ]
+    )
+    x,y = density.partialTraceBoth(state,1,2)
 
+    state = density.ketsToDensity([basis.computation.kets[0]])
+    measurementResult = density.measureTopNQubits(state,basis.computation.density,1)
+
+    measurementResult = density.measureArbitrary(state, basis.computation2D.density, [0, 2])
+    print(measurementResult)
 
 if __name__ == "__main__":
+    # x =np.array([0,1,0,0,0,0,0,0],dtype = complex),
+    # y=np.outer(x,x)
+    # print(y)
+    # test_measureArbitrary4()
+    
     unittest.main()

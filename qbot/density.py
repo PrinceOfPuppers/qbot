@@ -1,11 +1,12 @@
 import numpy as np
 import numpy.linalg as linalg
-from qbot.helpers import ensureSquare
+from qbot.helpers import ensureSquare, log2
 import qbot.qgates as gates
 
 def ketsToDensity(kets:[np.ndarray],probs: [float] = None) -> np.ndarray:
     '''converts set of kets to a density matrix'''
-    probs = [1] if probs == None else probs
+    if probs == None:
+        return ketToDensity(kets[0])
 
     if len(kets) != len(probs):
         raise Exception("number of state vectors an number of probabilites must equal")
@@ -36,7 +37,7 @@ def partialTrace(density:np.ndarray, nQubits, mQubits, traceN = True):
     if(dimN + dimM != size):
         raise Exception("incorrect number of qubits")
     
-    axis1,axis2 = (0,2) if traceN else (1,3)
+    axis1,axis2 = (1,3) if traceN else (0,2)
 
     return  np.trace(
                 density.reshape(dimN,dimM,dimN,dimM), 
@@ -47,27 +48,26 @@ def partialTraceBoth(density,nQubits,mQubits):
     '''
     traces out n and m qubits seperatly (used for measurement simulation)
     '''
+    numQubits = log2(ensureSquare(density))
+
+    if(nQubits + mQubits != numQubits):
+        raise Exception("incorrect number of qubits")
 
     dimN = 2**nQubits
     dimM = 2**mQubits
     
-    size = ensureSquare(density)
-    
-    if(dimN + dimM != size):
-        raise Exception("incorrect number of qubits")
-
     return (
         np.trace(
             density.reshape(dimN,dimM,dimN,dimM), 
-            axis1=0, axis2=2
-        ),          
+            axis1=1, axis2=3
+        ),
         np.trace(
             density.reshape(dimN,dimM,dimN,dimM), 
-            axis1=1, axis2=3
-        )
+            axis1=0, axis2=2
+        )          
     )
 
-def partialTraceArbitraryBipartide(density: np.ndarray, numQubits: int, systemAQubits: [int]):
+def partialTraceArbitrary(density: np.ndarray, numQubits: int, systemAQubits: [int]):
     size = ensureSquare(density)
     systemAQubits.sort()
 
@@ -79,11 +79,11 @@ def partialTraceArbitraryBipartide(density: np.ndarray, numQubits: int, systemAQ
     def stateMap(state):
         res = 0
         for i,aQubit in enumerate(systemAQubits):
-            mask = 1 << aQubit
-            res |= ((mask & state) != 0) << i
-        for i,bQubit in enumerate(systemBQubits):
-            mask = 1 << bQubit
+            mask = 1 << numQubits - aQubit - 1
             res |= ((mask & state)!= 0) << (numQubits - 1 - i)
+        for i,bQubit in enumerate(systemBQubits):
+            mask = 1 << numQubits - bQubit - 1
+            res |= ((mask & state) != 0) << numSysBQubits - i - 1
         return res
 
     swapGate = gates.genArbitrarySwap(size, stateMap)
@@ -99,7 +99,7 @@ class MeasurementResult:
     __slots__ = (
         'unMeasuredDensity', # [np.ndarray] state of the unmeasured qubits after the measurement
         'toMeasureDensity',  # [np.ndarray] state of the qubits to measure, before measurement 
-        'probs',     # [float]      probabilities of getting each of the basis states
+        'probs',             # [float]      probabilities of getting each of the basis states
     )
     def __init__(self, unMeasuredDensity, toMeasureDensity, probs):
         self.unMeasuredDensity = unMeasuredDensity 
@@ -117,7 +117,7 @@ def measureTopNQubits(density: np.ndarray, basisDensity: [np.ndarray], N: int) -
     '''
     Measures the top N Qubits with respect to the provided basis (must also be density matrices)
     '''
-    numQubits = density.shape[0] // 2
+    numQubits = log2(ensureSquare(density))
 
     if (numQubits == N):
         toMeasureDensity = density
@@ -139,6 +139,31 @@ def measureTopNQubits(density: np.ndarray, basisDensity: [np.ndarray], N: int) -
     
     return MeasurementResult(unMeasuredDensity,toMeasureDensity,probs)
 
+def measureArbitrary(density: np.ndarray, basisDensity: [np.ndarray], toMeasure: [int]) -> MeasurementResult:
+    '''
+    Measures all qubits in toMeasure
+    '''
+    numQubits = log2(ensureSquare(density))
+
+    if len(toMeasure) == numQubits:
+        toMeasureDensity = density
+        unMeasuredDensity = np.array([],dtype=complex)
+    else:
+        toMeasureDensity, unMeasuredDensity = partialTraceArbitrary(density, numQubits, toMeasure)
+    
+    probs = []
+    s = 0
+
+    for b in basisDensity:
+        probs.append(
+            abs(np.trace(np.matmul(toMeasureDensity, b)))
+        )
+        s += probs[-1]
+
+    for i in range(0,len(probs)):
+        probs[i] /= s
+    
+    return MeasurementResult(unMeasuredDensity,toMeasureDensity,probs)
 
     
 
