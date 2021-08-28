@@ -325,12 +325,5 @@ class testCircuit(unittest.TestCase):
             self.assertEqual(classicalBits,result.probs.index(1.0))
 
 
-
-
 if __name__ == "__main__":
-    # x =np.array([0,1,0,0,0,0,0,0],dtype = complex),
-    # y=np.outer(x,x)
-    # print(y)
-    # test_measureArbitrary4()
-    
     unittest.main()

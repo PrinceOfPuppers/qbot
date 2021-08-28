@@ -1,5 +1,6 @@
 from qbot.ui.circuitBox import CircuitBox, drawGate, drawSwap
 from qbot.ui.statusBar import StatusBar
+from qbot.ui.selectedBox import SelectedBox
 import curses
 from time import sleep
 
@@ -12,12 +13,16 @@ def main(stdscr):
     statusBar = StatusBar(stdscr)
     statusBar.refresh(stdscr)
 
+    selectedBox = SelectedBox(stdscr, 4)
+    selectedBox.text = "this is a test of the selected box to see how well it works, im writing somthing really long to see how it splits textttttttttt aaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb vcvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+    selectedBox.refresh(stdscr)
+
     numRails = 6
     stdscr = curses.initscr()
     x = 0 
     y = 2
     width = 30
-    circuitBox = CircuitBox(stdscr, y, x, numRails, width, 3)
+    circuitBox = CircuitBox(stdscr, y, x, numRails, width, 5)
 
     circuitBox.drawRails()
     drawGate(circuitBox.placedGatesWin,0,1,1,'∡ ±',[0,2,3])
@@ -43,6 +48,7 @@ def main(stdscr):
 
     stdscr.getch()
     curses.endwin()
+
 
 if __name__ == "__main__":
     curses.wrapper(main)
