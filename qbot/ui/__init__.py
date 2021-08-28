@@ -4,6 +4,21 @@ from qbot.ui.selectedBox import SelectedBox
 import curses
 from time import sleep
 
+def setupUI(stdscr, numRails):
+    selectedBoxHeight = 4
+    nonCircuitBoxHeight = selectedBoxHeight + 2
+
+    stdscr.clear()
+    curses.curs_set(0)
+    curses.use_default_colors()
+    curses.nocbreak()
+
+    statusBar = StatusBar(stdscr)
+    statusBar.refresh(stdscr)
+    selectedBox = SelectedBox(stdscr, selectedBoxHeight)
+
+    selectedBox.refresh(stdscr)
+
 def main(stdscr):
     stdscr.clear()
     curses.curs_set(0)
@@ -14,7 +29,7 @@ def main(stdscr):
     statusBar.refresh(stdscr)
 
     selectedBox = SelectedBox(stdscr, 4)
-    selectedBox.text = "this is a test of the selected box to see how well it works, im writing somthing really long to see how it splits textttttttttt aaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb vcvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+    selectedBox.text = "this is a test of the selected box to see how well it works, im writing somthing really long to see how it splits textttttttttt aaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb vcvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv this is a test of the selected box to see how well it works, im writing somthing really long to see how it splits textttttttttt aaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb vcvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv aa aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bb"
     selectedBox.refresh(stdscr)
 
     numRails = 6
@@ -42,7 +57,7 @@ def main(stdscr):
     stdscr.getch()
     for i in range(0,100):
         sleep(0.01)
-        circuitBox.xOffset = i
+        circuitBox.xOffset = 2*i
         circuitBox.yOffset = i
         circuitBox.refresh(stdscr)
 

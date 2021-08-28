@@ -161,11 +161,3 @@ def deserializeCircuit(circuitStr: str):
 
         addElementToCircuit(circuit, deserializeCircuitElement(*args))
     return circuit
-
-
-def main():
-    print(deserializeCircuit("Gate 3 5 1 - H\nGate 4 5 2 - X 0 1\n"))
-    
-
-if __name__ == "__main__":
-    main()

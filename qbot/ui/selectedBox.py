@@ -52,7 +52,12 @@ class SelectedBox:
                 stdscr.addstr(lineNum,1, self.text[start:splitText[i-1]])
                 start = splitText[i-1]+1
                 lineNum+=1
+
+            if lineNum > self.height + self.firstCol:
+                break
+
             i+=1
+
             if i == len(splitText):
                 stdscr.addstr(lineNum,1, self.text[start:])
                 break

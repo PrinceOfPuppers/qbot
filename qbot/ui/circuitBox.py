@@ -196,7 +196,7 @@ class CircuitBox:
         heightRemaining is how much of the terminal should be left for other ui elements
         '''
         height = railToY(numRails)
-        width = gateXToWinX(gateWidths) +30
+        width = gateXToWinX(gateWidths) + circuitLeftMargin
 
         self.numRails = numRails
         self.gateWidths = gateWidths
@@ -211,15 +211,17 @@ class CircuitBox:
 
         self.heightRemaining = heightRemaining
 
-        self.boxHeight = 0
-        self.boxWidth = 0
-        self._resizeBox(stdscr)
-        
 
         self.placedGatesWin = curses.newwin(height, width, y, x)
         self.toPlaceGateWin = curses.newwin(height, width, y, x)
         self.railsWin = curses.newwin(height, width, y, x)
-        self.box = curses.newpad(height+y, width+x)
+
+        self.boxHeight = 0
+        self.boxWidth  = 0
+
+        # a buffer of 2 is added to the width to prevent smearing
+        self.box = curses.newpad(height+y, width+x + 2)
+        self._resizeBox(stdscr)
 
         self._createRailsStr()
 
@@ -228,7 +230,7 @@ class CircuitBox:
 
     def _createTopNumsStr(self):
         currentLen = len(self._xNumsList)
-        newLen = (self.width -  circuitLeftMargin)//(xToColFactor)
+        newLen = (self.width -  circuitLeftMargin)//(xToColFactor) + 1
         if newLen > currentLen:
             for i in range(currentLen,newLen):
                 num = str(i)
@@ -241,17 +243,18 @@ class CircuitBox:
     
     def _resizeBox(self, stdscr):
         y,x = stdscr.getmaxyx()
-        boxWidth = x - 1
-        boxHeight = y - self.heightRemaining- 1
+        boxWidth  = x - 1
+        boxHeight = y - self.heightRemaining - 1
         if boxWidth != self.boxWidth or boxHeight != self.boxHeight:
             self.boxWidth = min(self.width + self.x,boxWidth) 
             self.boxHeight = min(self.height + self.y,boxHeight)
-
+        
 
     def refresh(self,stdscr):
+        self.box.erase()
         self._resizeBox(stdscr)
-
-        self.box.clear()
+        # self.box.clear()
+        self.box.erase()
 
         self.railsWin.overlay(self.box)
         self.placedGatesWin.overlay(self.box)
@@ -259,7 +262,7 @@ class CircuitBox:
 
         # keep offset in valid range
         self.yOffset = max(min(self.yOffset, self.height),0)
-        self.xOffset = max(min(self.xOffset, self.width),0)
+        self.xOffset = max(min(self.xOffset, self.width-1),0)
         
         self.box.refresh(self.yOffset , self.xOffset, self.y, self.x, self.boxHeight, self.boxWidth)
 
@@ -269,8 +272,8 @@ class CircuitBox:
         change the number of rails or the width of the circuit in units of gate widths
         -1 for either parameter will leave it as it is
         '''
-        height = self.height if numRails == -1 else railToY(numRails)
-        width = self.width if gateWidths == -1 else gateXToWinX(gateWidths)
+        height = self.height if numRails   == -1 else railToY(numRails)
+        width =  self.width  if gateWidths == -1 else gateXToWinX(gateWidths)
         
         self.height = height
         self.width = width
