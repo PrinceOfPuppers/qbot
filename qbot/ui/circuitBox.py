@@ -198,29 +198,36 @@ class CircuitBox:
         height = railToY(numRails)
         width = gateXToWinX(gateWidths) + circuitLeftMargin
 
+        # size of the entire circuit in rails and gate widths
+        # note that this is the size of placedGatesWin, toPlaceGateWin and railsWin
         self.numRails = numRails
         self.gateWidths = gateWidths
 
+        # x and y coord of top left portion of cirucitBox on the screen
         self.x = x
         self.y = y
+        # same as numRails and gateWidths except in rows and cols
         self.width = width
         self.height = height
 
+        # x and y offset of self.box, used for scrolling the window
         self.xOffset = 0
         self.yOffset = 0
 
+        # height of screen - height of circuit box 
         self.heightRemaining = heightRemaining
-
 
         self.placedGatesWin = curses.newwin(height, width, y, x)
         self.toPlaceGateWin = curses.newwin(height, width, y, x)
         self.railsWin = curses.newwin(height, width, y, x)
 
+        # size of the box displayed on screen (note can be smaller than pad self.box, but not larger)
         self.boxHeight = 0
         self.boxWidth  = 0
 
         # a buffer of 2 is added to the width to prevent smearing
-        self.box = curses.newpad(height+y, width+x + 2)
+        sy,sx = stdscr.getmaxyx()
+        self.box = curses.newpad(height+y, sx)
         self._resizeBox(stdscr)
 
         self._createRailsStr()
@@ -245,10 +252,15 @@ class CircuitBox:
         y,x = stdscr.getmaxyx()
         boxWidth  = x - 1
         boxHeight = y - self.heightRemaining - 1
+        
+
         if boxWidth != self.boxWidth or boxHeight != self.boxHeight:
             self.boxWidth = min(self.width + self.x,boxWidth) 
             self.boxHeight = min(self.height + self.y,boxHeight)
         
+        oldPadHeight,oldPadWidth = self.box.getmaxyx()
+        if (oldPadHeight < self.height + y | oldPadWidth < self.width + self.x + 2 ):
+            self.box.resize( self.height + y, self.width + self.x + 2 )
 
     def refresh(self,stdscr):
         self.box.erase()
