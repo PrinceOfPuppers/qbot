@@ -2,6 +2,7 @@ import curses
 import curses.panel
 
 horizontalLine = "─"
+spaces = "     "
 
 # gate drawing
 top = "┌───┐"
@@ -226,14 +227,15 @@ class CircuitBox:
         self.boxWidth  = 0
 
         # a buffer of 2 is added to the width to prevent smearing
-        sy,sx = stdscr.getmaxyx()
-        self.box = curses.newpad(height+y, sx)
+        self.box = curses.newpad(height+y, width + x + 2 )
         self._resizeBox(stdscr)
 
         self._createRailsStr()
 
         self._xNumsList = [circuitLeftMargin*" "+"0"]
         self._createTopNumsStr()
+
+        self.drawRails()
 
     def _createTopNumsStr(self):
         currentLen = len(self._xNumsList)
@@ -247,7 +249,7 @@ class CircuitBox:
 
     def _createRailsStr(self):
         self._rail = self.width*horizontalLine
-    
+
     def _resizeBox(self, stdscr):
         y,x = stdscr.getmaxyx()
         boxWidth  = x - 1
@@ -261,6 +263,19 @@ class CircuitBox:
         oldPadHeight,oldPadWidth = self.box.getmaxyx()
         if (oldPadHeight < self.height + y | oldPadWidth < self.width + self.x + 2 ):
             self.box.resize( self.height + y, self.width + self.x + 2 )
+
+    def clear(self,stdscr):
+        self.placedGatesWin.clear()
+        self.toPlaceGateWin.clear()
+        self.refresh(stdscr)
+    
+    def deleteGate(self, gateX, startRail, numRails):
+        x = gateXToWinX(gateX)
+        y = railToY(startRail)
+
+        for i in range(0,3*numRails):
+            self.placedGatesWin.addstr(y-1+i, x, spaces)
+        
 
     def refresh(self,stdscr):
         self.box.erase()
@@ -278,25 +293,42 @@ class CircuitBox:
         
         self.box.refresh(self.yOffset , self.xOffset, self.y, self.x, self.boxHeight, self.boxWidth)
 
-    
-    def resizeCircuit(self, numRails, gateWidths):
-        '''
-        change the number of rails or the width of the circuit in units of gate widths
-        -1 for either parameter will leave it as it is
-        '''
-        height = self.height if numRails   == -1 else railToY(numRails)
-        width =  self.width  if gateWidths == -1 else gateXToWinX(gateWidths)
-        
-        self.height = height
-        self.width = width
+    def resizeCircuit(self, stdscr, numRails, gateWidths):
+        self.placedGatesWin.clear()
+        self.toPlaceGateWin.clear()
+        self.railsWin.clear()
+        self.box.clear()
+        self.refresh(stdscr)
 
-        self.railsWin.resize(height,width)
-        self.placedGatesWin.resize(height,width)
+        height = railToY(numRails)
+        width = gateXToWinX(gateWidths) + circuitLeftMargin
+
+        # size of the entire circuit in rails and gate widths
+        # note that this is the size of placedGatesWin, toPlaceGateWin and railsWin
+        self.numRails = numRails
+        self.gateWidths = gateWidths
+
+        # same as numRails and gateWidths except in rows and cols
+        self.width = width
+        self.height = height
+
+        # x and y offset of self.box, used for scrolling the window
+        self.xOffset = 0
+        self.yOffset = 0
+
+        self.placedGatesWin.resize(height, width)
         self.toPlaceGateWin.resize(height, width)
-        self.box.resize(self.height+ self.y, self.width + self.x)
+        self.railsWin.resize(height, width)
+
+        # size of the box displayed on screen (note can be smaller than pad self.box, but not larger)
+        self.boxHeight = 0
+        self.boxWidth  = 0
+        
+        self._resizeBox(stdscr)
+
+        self._createRailsStr()
 
         self._createTopNumsStr()
-        self._createRailsStr()
         self.drawRails()
 
     def drawRails( self ):
@@ -305,4 +337,3 @@ class CircuitBox:
         for railNum in range(0, self.numRails):
             railY = railToY(railNum)
             self.railsWin.addstr(railY, 0, self._rail)
-
