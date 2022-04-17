@@ -67,7 +67,7 @@ def partialTraceBoth(density,nQubits,mQubits):
         )          
     )
 
-def partialTraceArbitrary(density: np.ndarray, numQubits: int, systemAQubits: [int]):
+def partialTraceArbitrary(density: np.ndarray, numQubits: int, systemAQubits: list[int]):
     size = ensureSquare(density)
     systemAQubits.sort()
 
@@ -113,7 +113,7 @@ class MeasurementResult:
             f'probs: \n{self.probs.__repr__()}\n'
         )
 
-def measureTopNQubits(density: np.ndarray, basisDensity: [np.ndarray], N: int) -> MeasurementResult:
+def measureTopNQubits(density: np.ndarray, basisDensity: list[np.ndarray], N: int) -> MeasurementResult:
     '''
     Measures the top N Qubits with respect to the provided basis (must also be density matrices)
     '''

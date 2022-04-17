@@ -42,11 +42,14 @@ class SelectedBox:
             i += 1
             
 
-
         i=0
         start = 0
         lineNum = self.firstCol+2
         while True:
+            if i == len(splitText):
+                stdscr.addstr(lineNum,1, self.text[start:])
+                break
+
             split = splitText[i]
             if split - start > self.width - 2*self.leftRightPad:
                 stdscr.addstr(lineNum,1, self.text[start:splitText[i-1]])
@@ -57,11 +60,5 @@ class SelectedBox:
                 break
 
             i+=1
-
-            if i == len(splitText):
-                stdscr.addstr(lineNum,1, self.text[start:])
-                break
-
-
 
         stdscr.refresh()

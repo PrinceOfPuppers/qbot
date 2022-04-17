@@ -68,7 +68,7 @@ class Gate(CircuitElement):
         'controlQubits',    # list of ints 
         'operator',      # np.ndarray(2 dimensional) reperesenting the gate
     )
-    def __init__(self, x: int, numQubits: int, matrix: np.ndarray, firstTargetQubit: int = 0, controlQubits: [int] = None):
+    def __init__(self, x: int, numQubits: int, matrix: np.ndarray, firstTargetQubit: int = 0, controlQubits: list[int] = None):
         if(controlQubits == None):
             controlQubits = []
 

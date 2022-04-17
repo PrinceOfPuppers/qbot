@@ -290,7 +290,7 @@ def genControlledGate(numQubits,controlQubit,firstTargetQubit,gate):
 
 
 
-def genMultiControlledGate(numQubits:int, controlQubits:[int], firstTargetQubit:int, gate:np.ndarray):
+def genMultiControlledGate(numQubits:int, controlQubits:list[int], firstTargetQubit:int, gate:np.ndarray):
     targetSize = _checkGate(gate)
     
     numControls = len(controlQubits)
