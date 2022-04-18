@@ -1,6 +1,7 @@
 from typing import List, Tuple
 import math
 import operator
+import numpy as np
 
 smallVal = 1e-5
 probRounding = 15
@@ -8,6 +9,8 @@ probRounding = 15
 def valsClose(a, b):
     if isinstance(a, float):
         return abs(a-b) < smallVal
+    if isinstance(a, np.ndarray) or isinstance(b,np.ndarray):
+        return (a == b).all()
     return a == b
 
 
@@ -94,8 +97,22 @@ class ProbVal:
             self.probs[i] = round(self.probs[i], probRounding)
 
     def __init__(self, probs: List[float], values: list):
-        self.probs = probs
-        self.values = values
+        if len(probs) != len(values):
+            raise Exception("len of probs and values must be the same")
+
+        self.probs = []
+        self.values = []
+        for i, prob in enumerate(probs):
+            value = values[i]
+            if isinstance(value, ProbVal):
+                for j, subProb in enumerate(value.probs):
+                    subVal = value.values[j]
+                    self.probs.append(prob*subProb)
+                    self.values.append(subVal)
+            else:
+                self.probs.append(prob)
+                self.values.append(value)
+
         self.normalize()
 
     @staticmethod
@@ -106,6 +123,13 @@ class ProbVal:
             probs.append(prob)
             values.append(value)
         return ProbVal(probs, values)
+
+    def type(self):
+        t = self.values[0]
+        for value in range(1, len(self.values)):
+            if type(value) != t:
+                return 'mixed'
+        return t
 
     def __unary(self, unaryOp, *args):
         newProbs = []
