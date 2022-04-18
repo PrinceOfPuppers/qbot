@@ -1,4 +1,4 @@
 # QBOT
 > An Interactive Quantum Computing Simulator
 
-WIP
+Redesign in progress, name subject to change.
