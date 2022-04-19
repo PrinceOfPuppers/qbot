@@ -519,7 +519,7 @@ globalNameSpace = {
     "linalg_test":         lambda *args, **kwargs: funcWrapper(np.linalg.test, *args, **kwargs),
 }
 
-def evaluate(expression, localNameSpace):
+def evaluate(expression: str, localNameSpace: dict):
     code = compile(expression, "<string>", "eval")
     #print(code.co_names)
 
