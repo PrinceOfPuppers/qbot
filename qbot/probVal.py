@@ -123,13 +123,32 @@ class ProbVal:
             probs.append(prob)
             values.append(value)
         return ProbVal(probs, values)
+    
+    def toDensityMatrix(self):
+        if isinstance(self.instance(), np.ndarray):
+            sum = 0
+            for i,prob in enumerate(self.probs):
+                value = self.values[i]
+                sum += prob*value
+            return sum
+        raise TypeError()
+    
+    def typeString(self):
+        inst = self.instance()
+        if inst is None:
+            return f"ProbVal<mixed>"
+        return f"ProbVal<{type(inst)}>"
 
-    def type(self):
-        t = self.values[0]
+    def instance(self):
+        '''used for isinstance checking'''
+        if len(self.values) == 0:
+            return None
+        inst = self.values[0]
+        t = type(inst)
         for value in range(1, len(self.values)):
-            if type(value) != t:
-                return 'mixed'
-        return t
+            if isinstance(value,t):
+                return None
+        return inst
 
     def __unary(self, unaryOp, *args):
         newProbs = []

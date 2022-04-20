@@ -2,9 +2,40 @@ import math
 import numpy as np
 from qbot.probVal import ProbVal, funcWrapper
 
+oneOverRoot2 = 2**(-1/2)
+
 globalNameSpace = {
     '__builtins__': {},
     "ProbVal":    ProbVal.fromZipped,
+
+    # common states
+    "comp_0": np.array([1,0], dtype = complex),
+    "comp_1": np.array([0,1], dtype = complex),
+    "hadamard_plus":  oneOverRoot2*np.array([1,1] ,dtype=complex),
+    "hadamard_minus": oneOverRoot2*np.array([1,-1],dtype=complex),
+    "bell_00": oneOverRoot2*np.array([1,0,0,1] ,dtype=complex),
+    "bell_01": oneOverRoot2*np.array([0,1,1,0] ,dtype=complex),
+    "bell_10": oneOverRoot2*np.array([1,0,0,-1],dtype=complex),
+    "bell_11": oneOverRoot2*np.array([0,1,-1,0],dtype=complex),
+
+    # common gates
+    "identity" : np.eye(2),
+    "hadamard" : oneOverRoot2 * np.array([
+            [1, 1],
+           [1, -1]
+        ],dtype = complex),
+    "pauliX" :  np.array([
+            [0, 1],
+            [1, 0]
+        ],dtype = complex),
+    "pauliY" :  np.array([
+            [0, -1j],
+            [1j, -0]
+        ],dtype = complex),
+    "pauliZ" :  np.array([
+            [1, 0],
+            [0, -1]
+        ],dtype = complex),
 
     # collections (to make them behave with ProbVal better)
     "plist":           lambda *args: funcWrapper(lambda *a: list(a),  *args),

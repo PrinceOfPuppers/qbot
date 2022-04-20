@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from qbot.evaluation import evaluate
+from qbot.probVal import ProbVal
 import sys
 
 def padZeros(s, numDigits):
@@ -29,8 +30,8 @@ def raiseFormattedError(error:str):
     print(error)
     sys.exit()
 
-def InvalidOperationError(lines, lineNum, op):
-    return formatError(lines, lineNum, "InvalidOperation", op)
+def UnknownOperationError(lines, lineNum, op):
+    return formatError(lines, lineNum, "UnknownOperation", op)
 
 def InvalidVariableName(lines, lineNum, varName):
     return formatError(lines, lineNum, "InvalidVariableName", varName)
@@ -39,6 +40,14 @@ def NumArgumentsError(lines, lineNum, op, numArgsGiven, numRequiredMin, numRequi
     if numRequiredMax < numRequiredMin:
         return formatError(lines, lineNum, "NumArgumentsError", f"operation {op} requires {numRequiredMin}-{numRequiredMax} arguments ({numArgsGiven} given)")
     return formatError(lines, lineNum, "NumArgumentsError", f"operation {op} requires {numRequiredMin} argument(s) ({numArgsGiven} given)")
+
+def customTypeError(lines, lineNum, expectedTypes:list, gotType:str):
+    if len(expectedTypes) > 1:
+        expectedTypeStr = f"any of {expectedTypes}"
+    else:
+        expectedTypeStr = f"{expectedTypes}"
+
+    return formatError(lines, lineNum, "TypeError", f"{gotType} cannot be interpreted as {expectedTypeStr}")
 
 # operations
 def qset(hilbertSpace, localNameSpace, lines, lineNum, tokens):
@@ -64,7 +73,25 @@ def cdef(hilbertSpace, localNameSpace, lines, lineNum, tokens):
     localNameSpace[name] = val
 
 def qdef(hilbertSpace, localNameSpace, lines, lineNum, tokens):
-    raise NotImplementedError()
+    name:str = tokens[1]
+    if not name.isidentifier():
+        raiseFormattedError(InvalidVariableName(lines, lineNum, name))
+
+    expr = tokens[2]
+    val = evaluate(expr, localNameSpace)
+
+    # conversion of probVal into density matrix
+    if isinstance(val, ProbVal):
+        try:
+            val = val.toDensityMatrix()
+        except TypeError:
+            raiseFormattedError(customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], val.typeString()))
+    
+    elif not isinstance(val, np.ndarray):
+        raiseFormattedError(customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], type(val)))
+
+
+    localNameSpace[name] = val
 
 def gate(hilbertSpace, localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
@@ -144,7 +171,7 @@ def executeTxt(text: str):
         try:
             op, argRangeStart, argRangeEnd = operations[tokens[0]]
         except KeyError:
-            raiseFormattedError(InvalidOperationError(lines, lineNum, tokens[0]))
+            raiseFormattedError(UnknownOperationError(lines, lineNum, tokens[0]))
 
         numArgs = len(tokens) - 1
         if numArgs < argRangeStart or numArgs > argRangeEnd:

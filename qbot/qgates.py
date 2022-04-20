@@ -2,50 +2,6 @@ import numpy as np
 from qbot.helpers import ensureSquare, log2
 from types import FunctionType
 
-# static 1 qubit gates
-identity = np.eye(2)
-
-hadamard = (1/np.sqrt(2)) * np.array(
-    [
-        [1, 1],
-        [1, -1]
-    ]
-    ,dtype = complex
-)
-
-pauliX =  np.array(
-    [
-        [0, 1],
-        [1, 0]
-    ]
-    ,dtype = complex
-)
-
-pauliY =  np.array(
-    [
-        [0, -1j],
-        [1j, -0]
-    ]
-    ,dtype = complex
-)
-
-pauliZ =  np.array(
-    [
-        [1, 0],
-        [0, -1]
-    ]
-    ,dtype = complex
-)
-
-gateDict = {
-    "I": identity,
-    "H": hadamard,
-    "X": pauliX,
-    "Y": pauliY,
-    "Z": pauliZ,
-}
-
-
 
 def _checkGate(gate: np.ndarray):
     '''
