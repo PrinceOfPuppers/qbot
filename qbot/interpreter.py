@@ -4,6 +4,20 @@ from qbot.evaluation import evaluate
 from qbot.probVal import ProbVal
 import sys
 
+def convertToDensity(lines, lineNum, val):
+    if isinstance(val, ProbVal):
+        try:
+            return val.toDensityMatrix()
+        except:
+            raiseFormattedError(customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], val.typeString()))
+
+    if not isinstance(val, np.ndarray):
+        raiseFormattedError(customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], type(val)))
+
+    if len(val.shape) == 1:
+        np.outer(val, val)
+    return val
+
 def padZeros(s, numDigits):
     return str(s).zfill(numDigits)
 
@@ -41,6 +55,9 @@ def NumArgumentsError(lines, lineNum, op, numArgsGiven, numRequiredMin, numRequi
         return formatError(lines, lineNum, "NumArgumentsError", f"operation {op} requires {numRequiredMin}-{numRequiredMax} arguments ({numArgsGiven} given)")
     return formatError(lines, lineNum, "NumArgumentsError", f"operation {op} requires {numRequiredMin} argument(s) ({numArgsGiven} given)")
 
+def customIndexError(lines, lineNum, targetOrControl, index, maxIndex, minIndex = 0):
+    return formatError(lines, lineNum, "IndexError", f"{targetOrControl} index {index} outside of valid range [{minIndex}, {maxIndex}]")
+
 def customTypeError(lines, lineNum, expectedTypes:list, gotType:str):
     if len(expectedTypes) > 1:
         expectedTypeStr = f"any of {expectedTypes}"
@@ -52,7 +69,22 @@ def customTypeError(lines, lineNum, expectedTypes:list, gotType:str):
 # operations
 def qset(hilbertSpace, localNameSpace, lines, lineNum, tokens):
     '''sets current hilbertspace (or some subspace of it) to a specific value'''
-    raise NotImplementedError()
+    numQubits = np.log2(hilbertSpace.shape[0])
+
+    expr:str = tokens[1]
+    val = convertToDensity(lines, lineNum, evaluate(expr, localNameSpace))
+
+    if len(tokens) == 2:
+        hilbertSpace = val
+        return
+    else:
+        targets = tokens[2]
+        for target in targets:
+            if target < 0 or target > numQubits - 1:
+                raiseFormattedError(customIndexError(lines, lineNum, 'target', target, numQubits - 1))
+
+            raise NotImplementedError("must partial trace out target qubits and then apply")
+
 
 def jump(hilbertSpace, localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
@@ -78,19 +110,7 @@ def qdef(hilbertSpace, localNameSpace, lines, lineNum, tokens):
         raiseFormattedError(InvalidVariableName(lines, lineNum, name))
 
     expr = tokens[2]
-    val = evaluate(expr, localNameSpace)
-
-    # conversion of probVal into density matrix
-    if isinstance(val, ProbVal):
-        try:
-            val = val.toDensityMatrix()
-        except TypeError:
-            raiseFormattedError(customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], val.typeString()))
-    
-    elif not isinstance(val, np.ndarray):
-        raiseFormattedError(customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], type(val)))
-
-
+    val = convertToDensity(lines, lineNum, evaluate(expr, localNameSpace))
     localNameSpace[name] = val
 
 def gate(hilbertSpace, localNameSpace, lines, lineNum, tokens):
@@ -150,8 +170,7 @@ def processLineIntoTokens(line:str):
 
 def executeTxt(text: str):
     lines = text.splitlines()
-    hilbertSpace = None
-    #raise NotImplementedError("init hilberSpace")
+    hilbertSpace = np.ndarray([], dtype = complex)
     localNameSpace = {
         'state': hilbertSpace
     }

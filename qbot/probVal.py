@@ -129,6 +129,11 @@ class ProbVal:
             sum = 0
             for i,prob in enumerate(self.probs):
                 value = self.values[i]
+
+                # convert ket to density matrix
+                if len(value.shape) == 1:
+                    value = np.outer(value, value)
+
                 sum += prob*value
             return sum
         raise TypeError()

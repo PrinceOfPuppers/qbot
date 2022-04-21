@@ -95,6 +95,7 @@ def partialTraceArbitrary(density: np.ndarray, numQubits: int, systemAQubits: li
 def combineDensity(d1: np.ndarray, d2: np.ndarray):
     return np.kron(d1,d2)
 
+
 class MeasurementResult:
     __slots__ = (
         'unMeasuredDensity', # [np.ndarray] state of the unmeasured qubits after the measurement

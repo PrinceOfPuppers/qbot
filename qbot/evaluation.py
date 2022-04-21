@@ -1,38 +1,70 @@
 import math
 import numpy as np
 from qbot.probVal import ProbVal, funcWrapper
+from typing import List, Tuple
 
 oneOverRoot2 = 2**(-1/2)
+
+def tensorProd(*args):
+    if len(args) == 0:
+        return np.ndarray([], dtype = complex)
+
+    x = args[0]
+    for i in range(1, len(args)):
+        x = np.kron(x, args[i])
+    return x
+
+def ketToDensity(ket: np.ndarray) -> np.ndarray:
+    return np.outer(ket,ket)
+
+def ketsToDensity(pairs: List[Tuple[float, np.ndarray]]) -> np.ndarray:
+    '''converts set of kets to a density matrix'''
+    if len(pairs) == 0:
+        return np.ndarray([], dtype = complex)
+
+    if len(pairs) == 1:
+        return ketToDensity(pairs[0][1])
+
+    
+    result = np.zeros( (pairs[0][1].shape[0], pairs[0][1].shape[0]),dtype=complex )
+
+    for prob, ket in pairs:
+        result += prob* np.outer(ket,ket)
+    return result
+
 
 globalNameSpace = {
     '__builtins__': {},
     "ProbVal":    ProbVal.fromZipped,
 
     # common states
-    "comp_0": np.array([1,0], dtype = complex),
-    "comp_1": np.array([0,1], dtype = complex),
-    "hadamard_plus":  oneOverRoot2*np.array([1,1] ,dtype=complex),
-    "hadamard_minus": oneOverRoot2*np.array([1,-1],dtype=complex),
-    "bell_00": oneOverRoot2*np.array([1,0,0,1] ,dtype=complex),
-    "bell_01": oneOverRoot2*np.array([0,1,1,0] ,dtype=complex),
-    "bell_10": oneOverRoot2*np.array([1,0,0,-1],dtype=complex),
-    "bell_11": oneOverRoot2*np.array([0,1,-1,0],dtype=complex),
+    "comp0_ket": lambda: np.array([1,0], dtype = complex),
+    "comp1_ket": lambda: np.array([0,1], dtype = complex),
+
+    "compNth_ket": lambda numQubits, n = 0: np.eye(2**numQubits, dtype = complex)[n],
+
+    "hadamardPlus_ket":  lambda: oneOverRoot2*np.array([1,1] ,dtype=complex),
+    "hadamardMinus_ket": lambda: oneOverRoot2*np.array([1,-1],dtype=complex),
+    "bell00_ket": lambda: oneOverRoot2*np.array([1,0,0,1] ,dtype=complex),
+    "bell01_ket": lambda: oneOverRoot2*np.array([0,1,1,0] ,dtype=complex),
+    "bell10_ket": lambda: oneOverRoot2*np.array([1,0,0,-1],dtype=complex),
+    "bell11_ket": lambda: oneOverRoot2*np.array([0,1,-1,0],dtype=complex),
 
     # common gates
-    "identity" : np.eye(2),
-    "hadamard" : oneOverRoot2 * np.array([
+    "identity" : lambda: np.eye(2),
+    "hadamard" : lambda: oneOverRoot2 * np.array([
             [1, 1],
            [1, -1]
         ],dtype = complex),
-    "pauliX" :  np.array([
+    "pauliX" :  lambda: np.array([
             [0, 1],
             [1, 0]
         ],dtype = complex),
-    "pauliY" :  np.array([
+    "pauliY" :  lambda: np.array([
             [0, -1j],
             [1j, -0]
         ],dtype = complex),
-    "pauliZ" :  np.array([
+    "pauliZ" :  lambda: np.array([
             [1, 0],
             [0, -1]
         ],dtype = complex),
@@ -42,6 +74,11 @@ globalNameSpace = {
     "ptuple":          lambda *args: funcWrapper(lambda *a: tuple(a), *args),
     "pset":            lambda *args: funcWrapper(lambda *a: set(a),   *args),
     #"pdict":           lambda *args: funcWrapper(dict, args),
+
+    # common operations for density matrices and gates
+    "tensorProd": tensorProd,
+    "ketToDensity": ketToDensity,
+    "ketsToDensity": ketsToDensity,
 
     # math functions
     "math_acos":      lambda *args, **kwargs: funcWrapper(math.acos, *args, **kwargs),
