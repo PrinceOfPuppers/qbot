@@ -33,15 +33,27 @@ def ketsToDensity(pairs: List[Tuple[float, np.ndarray]]) -> np.ndarray:
     return result
 
 
+def compNth_ket(numQubits, n):
+    x = np.zeros(2**numQubits, dtype = complex)
+    x[n] = 1
+    return x
+
+def compNth_density(numQubits, n):
+    size = 2**numQubits
+    x = np.zeros((size,size), dtype = complex)
+    x[n][n] = 1
+    return x
+
+
 globalNameSpace = {
     '__builtins__': {},
     "ProbVal":    ProbVal.fromZipped,
 
-    # common states
+    # common kets
     "comp0_ket": lambda: np.array([1,0], dtype = complex),
     "comp1_ket": lambda: np.array([0,1], dtype = complex),
 
-    "compNth_ket": lambda numQubits, n = 0: np.eye(2**numQubits, dtype = complex)[n],
+    "compNth_ket": compNth_ket,
 
     "hadamardPlus_ket":  lambda: oneOverRoot2*np.array([1,1] ,dtype=complex),
     "hadamardMinus_ket": lambda: oneOverRoot2*np.array([1,-1],dtype=complex),
@@ -49,6 +61,40 @@ globalNameSpace = {
     "bell01_ket": lambda: oneOverRoot2*np.array([0,1,1,0] ,dtype=complex),
     "bell10_ket": lambda: oneOverRoot2*np.array([1,0,0,-1],dtype=complex),
     "bell11_ket": lambda: oneOverRoot2*np.array([0,1,-1,0],dtype=complex),
+
+    "comp0_density": lambda: np.array([[1, 0],[0, 0]], dtype = complex),
+    "comp1_density": lambda: np.array([[0, 0], [0, 1]], dtype = complex),
+
+    "compNth_density": compNth_density,
+
+    # common density
+    "hadamardPlus_density":  lambda: oneOverRoot2*np.array([[0.5, 0.5], [0.5, 0.5]], dtype=complex),
+    "hadamardMinus_density": lambda: oneOverRoot2*np.array([[0.5, -0.5], [-0.5, 0.5]], dtype=complex),
+    "bell00_density": lambda: oneOverRoot2*np.array([
+         [0.5, 0,  0,  0.5],
+         [0,   0,  0,  0  ],
+         [0,   0,  0,  0  ],
+         [0.5, 0,  0,  0.5],
+         ],dtype=complex),
+    "bell01_density": lambda: oneOverRoot2*np.array([
+         [0,  0,   0,   0],
+         [0,  0.5, 0.5, 0],
+         [0,  0.5, 0.5, 0],
+         [0,  0,   0,   0],
+         ],dtype=complex),
+    "bell10_density": lambda: oneOverRoot2*np.array([
+         [ 0.5, 0,  0, -0.5],
+         [ 0,   0,  0,  0  ],
+         [ 0,   0,  0,  0  ],
+         [-0.5, 0,  0,  0.5],
+        ],dtype=complex),
+    "bell11_density": lambda: oneOverRoot2*np.array([
+         [0,  0,   0,   0],
+         [0,  0.5,-0.5, 0],
+         [0, -0.5, 0.5, 0],
+         [0,  0,   0,   0],
+        ],dtype=complex),
+
 
     # common gates
     "identity" : lambda: np.eye(2),
@@ -76,9 +122,9 @@ globalNameSpace = {
     #"pdict":           lambda *args: funcWrapper(dict, args),
 
     # common operations for density matrices and gates
-    "tensorProd": tensorProd,
-    "ketToDensity": ketToDensity,
-    "ketsToDensity": ketsToDensity,
+    "tensorProd":    lambda *args, **kwargs: funcWrapper(tensorProd, *args, **kwargs),
+    "ketToDensity":  lambda *args, **kwargs: funcWrapper(ketToDensity, *args, **kwargs),
+    "ketsToDensity": lambda *args, **kwargs: funcWrapper(ketsToDensity, *args, **kwargs),
 
     # math functions
     "math_acos":      lambda *args, **kwargs: funcWrapper(math.acos, *args, **kwargs),
