@@ -2,24 +2,34 @@ import numpy as np
 import numpy.linalg as linalg
 from qbot.helpers import ensureSquare, log2
 import qbot.qgates as gates
+from typing import List, Tuple
 
-def ketsToDensity(kets:list[np.ndarray],probs: list[float] = None) -> np.ndarray:
-    '''converts set of kets to a density matrix'''
-    if probs == None:
-        return ketToDensity(kets[0])
+def tensorProd(*args):
+    if len(args) == 0:
+        return np.ndarray([], dtype = complex)
 
-    if len(kets) != len(probs):
-        raise Exception("number of state vectors an number of probabilites must equal")
-
-    result = np.zeros( (kets[0].shape[0],kets[0].shape[0]),dtype=complex )
-
-    for i,ket in enumerate(kets):
-        result += probs[i]* np.outer(ket,ket)
-
-    return result
+    x = args[0]
+    for i in range(1, len(args)):
+        x = np.kron(x, args[i])
+    return x
 
 def ketToDensity(ket: np.ndarray) -> np.ndarray:
     return np.outer(ket,ket)
+
+def ketsToDensity(pairs: List[Tuple[float, np.ndarray]]) -> np.ndarray:
+    '''converts set of kets to a density matrix'''
+    if len(pairs) == 0:
+        return np.ndarray([], dtype = complex)
+
+    if len(pairs) == 1:
+        return ketToDensity(pairs[0][1])
+
+    
+    result = np.zeros( (pairs[0][1].shape[0], pairs[0][1].shape[0]),dtype=complex )
+
+    for prob, ket in pairs:
+        result += prob* np.outer(ket,ket)
+    return result
 
 # def normalizeDensity(density: np.ndarray):
 #     density /= np.trace(density)
@@ -101,7 +111,7 @@ def replaceArbitrary(density: np.ndarray, newDensity: np.ndarray, qubitsToReplac
         raise ValueError(f'number of target qubits {len(qubitsToReplace)} does not equal number of provided qubits {newQubits}')
 
     _, density = partialTraceArbitrary(density, numQubits, qubitsToReplace)
-    density = combineDensity(density, newDensity)
+    density = np.kron(density, newDensity)
 
     newQubitsOffset = numQubits - len(qubitsToReplace)
     def stateMap(state):
@@ -124,9 +134,6 @@ def replaceArbitrary(density: np.ndarray, newDensity: np.ndarray, qubitsToReplac
     swappedDensity = swapGate @ density @ swapGate.conj().T
 
     return swappedDensity
-
-def combineDensity(d1: np.ndarray, d2: np.ndarray):
-    return np.kron(d1,d2)
 
 
 class MeasurementResult:
@@ -173,7 +180,7 @@ def measureTopNQubits(density: np.ndarray, basisDensity: list[np.ndarray], N: in
     
     return MeasurementResult(unMeasuredDensity,toMeasureDensity,probs)
 
-def measureArbitrary(density: np.ndarray, basisDensity: [np.ndarray], toMeasure: [int]) -> MeasurementResult:
+def measureArbitrary(density: np.ndarray, basisDensity: List[np.ndarray], toMeasure: List[int]) -> MeasurementResult:
     '''
     Measures all qubits in toMeasure
     '''
@@ -201,7 +208,7 @@ def measureArbitrary(density: np.ndarray, basisDensity: [np.ndarray], toMeasure:
 
     
 
-def densityToStateEnsable(density:np.ndarray) -> [(float, np.ndarray)]:
+def densityToStateEnsable(density:np.ndarray) -> List[Tuple[float, np.ndarray]]:
     '''Returns Eiganvalue pairs corrisponding which represent probability, state pairs'''
     _ = ensureSquare(density)
     eigVals,eigVecs = linalg.eig(density)
@@ -237,8 +244,6 @@ def tmp():
     print(f"{x:0{numQubits}b}")
 
 if __name__ == "__main__":
-    tmp()
-    exit()
     density = ketsToDensity([ np.array([1j,0],dtype=complex),np.array([0,1j],dtype=complex) ],[3/4,1/4])
 
     print(density)

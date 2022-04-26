@@ -30,7 +30,7 @@ def ensureSquare(array: np.ndarray):
     return shape[0]
 
 
-def ensureVec(array: np.array):
+def ensureVec(array: np.ndarray):
     if(array.ndim!=1):
         raise Exception("array must be 1 dimensional")
     return array.shape[0]
@@ -121,7 +121,7 @@ def complexToAlgebra(c:complex):
 
 
 
-def stateVecStr(state:np.array):
+def stateVecStr(state:np.ndarray):
     size = ensureVec(state)
     result = f'{complexToAlgebra(state[0])} |{format(0,f"0{size-1}b")}〉'
     for i in range(1,size):

@@ -1,36 +1,9 @@
 import math
 import numpy as np
 from qbot.probVal import ProbVal, funcWrapper
-from typing import List, Tuple
+from density import ketToDensity, ketsToDensity, tensorProd
 
 oneOverRoot2 = 2**(-1/2)
-
-def tensorProd(*args):
-    if len(args) == 0:
-        return np.ndarray([], dtype = complex)
-
-    x = args[0]
-    for i in range(1, len(args)):
-        x = np.kron(x, args[i])
-    return x
-
-def ketToDensity(ket: np.ndarray) -> np.ndarray:
-    return np.outer(ket,ket)
-
-def ketsToDensity(pairs: List[Tuple[float, np.ndarray]]) -> np.ndarray:
-    '''converts set of kets to a density matrix'''
-    if len(pairs) == 0:
-        return np.ndarray([], dtype = complex)
-
-    if len(pairs) == 1:
-        return ketToDensity(pairs[0][1])
-
-    
-    result = np.zeros( (pairs[0][1].shape[0], pairs[0][1].shape[0]),dtype=complex )
-
-    for prob, ket in pairs:
-        result += prob* np.outer(ket,ket)
-    return result
 
 
 def compNth_ket(numQubits, n):
