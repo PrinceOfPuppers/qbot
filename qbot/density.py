@@ -3,7 +3,7 @@ import numpy.linalg as linalg
 from qbot.helpers import ensureSquare, log2
 import qbot.qgates as gates
 
-def ketsToDensity(kets:[np.ndarray],probs: [float] = None) -> np.ndarray:
+def ketsToDensity(kets:list[np.ndarray],probs: list[float] = None) -> np.ndarray:
     '''converts set of kets to a density matrix'''
     if probs == None:
         return ketToDensity(kets[0])
@@ -69,6 +69,7 @@ def partialTraceBoth(density,nQubits,mQubits):
 
 def partialTraceArbitrary(density: np.ndarray, numQubits: int, systemAQubits: list[int]):
     size = ensureSquare(density)
+    systemAQubits = list(set(systemAQubits))
     systemAQubits.sort()
 
     systemBQubits = [i for i in range(0,numQubits) if i not in systemAQubits]
@@ -91,6 +92,38 @@ def partialTraceArbitrary(density: np.ndarray, numQubits: int, systemAQubits: li
     swappedDensity = swapGate @ density @ swapGate.conj().T
 
     return partialTraceBoth(swappedDensity,numSysAQubits,numSysBQubits)
+
+def replaceArbitrary(density: np.ndarray, newDensity: np.ndarray, qubitsToReplace: list[int], numQubits: int):
+    size = ensureSquare(density)
+    newSize = ensureSquare(newDensity)
+    newQubits = log2(newSize)
+    if len(qubitsToReplace) != newQubits:
+        raise ValueError(f'number of target qubits {len(qubitsToReplace)} does not equal number of provided qubits {newQubits}')
+
+    _, density = partialTraceArbitrary(density, numQubits, qubitsToReplace)
+    density = combineDensity(density, newDensity)
+
+    newQubitsOffset = numQubits - len(qubitsToReplace)
+    def stateMap(state):
+        res = 0
+
+        qubitsToReplaceOffset = 0
+        for i in range(numQubits):
+            if qubitsToReplaceOffset < len(qubitsToReplace) and i == qubitsToReplace[qubitsToReplaceOffset]:
+                mask = 1 << newQubitsOffset + qubitsToReplaceOffset
+                res |= ((mask & state)!= 0) << (numQubits-1 - i)
+
+                qubitsToReplaceOffset+=1
+            else:
+                mask = 1 << numQubits-1 - i + qubitsToReplaceOffset
+                res |= ((mask & state)!= 0) << (numQubits-1 - i)
+        return res
+
+    swapGate = gates.genArbitrarySwap(size, stateMap)
+
+    swappedDensity = swapGate @ density @ swapGate.conj().T
+
+    return swappedDensity
 
 def combineDensity(d1: np.ndarray, d2: np.ndarray):
     return np.kron(d1,d2)
@@ -178,7 +211,34 @@ def densityToStateEnsable(density:np.ndarray) -> [(float, np.ndarray)]:
             eigPair.append( (abs(eigVal),eigVecs[i]) )
     return eigPair
 
+
+def tmp():
+    def stateMap(numQubits, qubitsToReplace, state):
+        newQubitsOffset = numQubits - len(qubitsToReplace)
+        res = 0
+
+        qubitsToReplaceOffset = 0
+        for i in range(numQubits):
+            if qubitsToReplaceOffset < len(qubitsToReplace) and i == qubitsToReplace[qubitsToReplaceOffset]:
+                mask = 1 << newQubitsOffset + qubitsToReplaceOffset
+                res |= ((mask & state)!= 0) << (numQubits-1 - i)
+
+                qubitsToReplaceOffset+=1
+            else:
+                mask = 1 << numQubits-1 - i + qubitsToReplaceOffset
+                res |= ((mask & state)!= 0) << (numQubits-1 - i)
+        return res
+
+    numQubits = 5
+    qubitsToReplace = [1,2]
+    state = 0b10101
+    x = stateMap(numQubits, qubitsToReplace, state)
+    print(f"{state:0{numQubits}b}")
+    print(f"{x:0{numQubits}b}")
+
 if __name__ == "__main__":
+    tmp()
+    exit()
     density = ketsToDensity([ np.array([1j,0],dtype=complex),np.array([0,1j],dtype=complex) ],[3/4,1/4])
 
     print(density)

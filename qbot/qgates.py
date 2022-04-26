@@ -1,6 +1,6 @@
 import numpy as np
 from qbot.helpers import ensureSquare, log2
-from types import FunctionType
+from typing import Callable
 
 
 def _checkGate(gate: np.ndarray):
@@ -77,7 +77,7 @@ def genSwapGate(numQubits, q1, q2):
 
     return swapGate
 
-def genArbitrarySwap(hilbertDim: int, stateMap: FunctionType) -> np.ndarray:
+def genArbitrarySwap(hilbertDim: int, stateMap: Callable) -> np.ndarray:
     g = np.zeros((hilbertDim,hilbertDim),dtype=complex)
     for i in range(0,hilbertDim):
         g[stateMap(i)][i] = 1

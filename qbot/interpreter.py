@@ -1,7 +1,8 @@
 import math
 import numpy as np
 from qbot.evaluation import evaluate
-from qbot.probVal import ProbVal
+from qbot.density import partialTraceArbitrary
+from qbot.probVal import ProbVal, funcWrapper
 import sys
 
 def convertToDensity(lines, lineNum, val):
@@ -17,6 +18,9 @@ def convertToDensity(lines, lineNum, val):
     if len(val.shape) == 1:
         np.outer(val, val)
     return val
+
+
+
 
 def padZeros(s, numDigits):
     return str(s).zfill(numDigits)
@@ -67,6 +71,13 @@ def customTypeError(lines, lineNum, expectedTypes:list, gotType:str):
     return formatError(lines, lineNum, "TypeError", f"{gotType} cannot be interpreted as {expectedTypeStr}")
 
 # operations
+def _qset(hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets):
+    for target in targets:
+        if target < 0 or target > numQubits - 1:
+            raiseFormattedError(customIndexError(lines, lineNum, 'target', target, numQubits - 1))
+
+    _, hilbertSpace = partialTraceArbitrary(hilbertSpace, numQubits, targets)
+
 def qset(hilbertSpace, localNameSpace, lines, lineNum, tokens):
     '''sets current hilbertspace (or some subspace of it) to a specific value'''
     numQubits = np.log2(hilbertSpace.shape[0])
@@ -78,12 +89,35 @@ def qset(hilbertSpace, localNameSpace, lines, lineNum, tokens):
         hilbertSpace = val
         return
     else:
-        targets = tokens[2]
-        for target in targets:
-            if target < 0 or target > numQubits - 1:
-                raiseFormattedError(customIndexError(lines, lineNum, 'target', target, numQubits - 1))
+        targets = evaluate(tokens[2])
 
-            raise NotImplementedError("must partial trace out target qubits and then apply")
+        if isinstance(targets, ProbVal):
+            funcWrapper(_qset, hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets)
+            return
+
+        if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
+            _qset(hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets)
+            return
+        raiseFormattedError(customTypeError(lines, lineNum, ['list', 'tuple', 'set'], type(targets)))
+
+
+def _disc(hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets):
+    for target in targets:
+        if target < 0 or target > numQubits - 1:
+            raiseFormattedError(customIndexError(lines, lineNum, 'target', target, numQubits - 1))
+
+    _, hilbertSpace = partialTraceArbitrary(hilbertSpace, numQubits, targets)
+
+def disc(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+    numQubits = np.log2(hilbertSpace.shape[0])
+    targets = evaluate(tokens[1], localNameSpace)
+    if isinstance(targets, ProbVal):
+        funcWrapper(_disc, hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets)
+        return
+    if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
+        _disc(hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets)
+        return
+    raiseFormattedError(customTypeError(lines, lineNum, ['list', 'tuple', 'set'], type(targets)))
 
 
 def jump(hilbertSpace, localNameSpace, lines, lineNum, tokens):
@@ -113,6 +147,7 @@ def qdef(hilbertSpace, localNameSpace, lines, lineNum, tokens):
     val = convertToDensity(lines, lineNum, evaluate(expr, localNameSpace))
     localNameSpace[name] = val
 
+
 def gate(hilbertSpace, localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
 
@@ -131,6 +166,7 @@ def cout(hilbertSpace, localNameSpace, lines, lineNum, tokens):
 # "op_name: (func, arg_range_start, arg_range_end),
 operations = {
     'qset': (qset, 1, 2),
+    'disc': (disc, 1, 1),
     'jump': (jump, 1, 1),
     'cjmp': (cjmp, 2, 2),
     'qjmp': (qjmp, 2, 2),
