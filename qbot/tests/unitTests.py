@@ -193,7 +193,7 @@ class testPartialTrace(unittest.TestCase):
         self.assertTrue(np.array_equal(a1, a2))
         self.assertTrue(np.array_equal(b1, b2))
 
-    def test_replaceArbitrary(self):
+    def test_replaceArbitrary1(self):
         bell00 = basis.bell.density[0]
         comp0 = basis.computation.density[0]
         state = density.normalizeDensity(density.replaceArbitrary(bell00,comp0, [1]))
@@ -207,6 +207,29 @@ class testPartialTrace(unittest.TestCase):
 
         self.assertTrue(np.array_equal(state, solution))
 
+    def test_replaceArbitrary2(self):
+        bell00 = basis.bell.density[0]
+        comp0 = basis.computation.density[0]
+        state = density.normalizeDensity(density.replaceArbitrary(bell00,comp0, [0]))
+
+        solution = density.ketsToDensity([
+                np.array([1,0,0,0],dtype = complex),
+                np.array([0,1,0,0],dtype = complex),
+            ],
+            [0.5, 0.5]
+        )
+
+        self.assertTrue(np.array_equal(state, solution))
+
+    def test_replaceArbitrary3(self):
+        bell00 = basis.bell.density[0]
+        hadamardPlus = basis.hadamard.density[0]
+        comp0 = basis.computation.density[0]
+        combined = density.tensorProd(hadamardPlus, bell00)
+        state = density.normalizeDensity(density.replaceArbitrary(combined,comp0, [0]))
+        solution = density.normalizeDensity(density.tensorProd(comp0, bell00))
+
+        self.assertTrue(np.array_equal(state, solution))
 
 #class testMeasurement(unittest.TestCase):
 #    def test_computationComputation1(self):
