@@ -1,7 +1,7 @@
 import math
 import numpy as np
 from qbot.probVal import ProbVal, funcWrapper
-from density import ketToDensity, ketsToDensity, tensorProd
+from qbot.density import ketToDensity, ketsToDensityZipped, tensorProd
 
 oneOverRoot2 = 2**(-1/2)
 
@@ -23,45 +23,45 @@ globalNameSpace = {
     "ProbVal":    ProbVal.fromZipped,
 
     # common kets
-    "comp0_ket": lambda: np.array([1,0], dtype = complex),
-    "comp1_ket": lambda: np.array([0,1], dtype = complex),
+    "comp0_ket": np.array([1,0], dtype = complex),
+    "comp1_ket": np.array([0,1], dtype = complex),
 
     "compNth_ket": compNth_ket,
 
-    "hadamardPlus_ket":  lambda: oneOverRoot2*np.array([1,1] ,dtype=complex),
-    "hadamardMinus_ket": lambda: oneOverRoot2*np.array([1,-1],dtype=complex),
-    "bell00_ket": lambda: oneOverRoot2*np.array([1,0,0,1] ,dtype=complex),
-    "bell01_ket": lambda: oneOverRoot2*np.array([0,1,1,0] ,dtype=complex),
-    "bell10_ket": lambda: oneOverRoot2*np.array([1,0,0,-1],dtype=complex),
-    "bell11_ket": lambda: oneOverRoot2*np.array([0,1,-1,0],dtype=complex),
+    "hadamardPlus_ket":  oneOverRoot2*np.array([1,1] ,dtype=complex),
+    "hadamardMinus_ket": oneOverRoot2*np.array([1,-1],dtype=complex),
+    "bell00_ket": oneOverRoot2*np.array([1,0,0,1] ,dtype=complex),
+    "bell01_ket": oneOverRoot2*np.array([0,1,1,0] ,dtype=complex),
+    "bell10_ket": oneOverRoot2*np.array([1,0,0,-1],dtype=complex),
+    "bell11_ket": oneOverRoot2*np.array([0,1,-1,0],dtype=complex),
 
-    "comp0_density": lambda: np.array([[1, 0],[0, 0]], dtype = complex),
-    "comp1_density": lambda: np.array([[0, 0], [0, 1]], dtype = complex),
+    "comp0_density": np.array([[1, 0],[0, 0]], dtype = complex),
+    "comp1_density": np.array([[0, 0], [0, 1]], dtype = complex),
 
     "compNth_density": compNth_density,
 
     # common density
-    "hadamardPlus_density":  lambda: oneOverRoot2*np.array([[0.5, 0.5], [0.5, 0.5]], dtype=complex),
-    "hadamardMinus_density": lambda: oneOverRoot2*np.array([[0.5, -0.5], [-0.5, 0.5]], dtype=complex),
-    "bell00_density": lambda: oneOverRoot2*np.array([
+    "hadamardPlus_density":  oneOverRoot2*np.array([[0.5, 0.5], [0.5, 0.5]], dtype=complex),
+    "hadamardMinus_density": oneOverRoot2*np.array([[0.5, -0.5], [-0.5, 0.5]], dtype=complex),
+    "bell00_density": oneOverRoot2*np.array([
          [0.5, 0,  0,  0.5],
          [0,   0,  0,  0  ],
          [0,   0,  0,  0  ],
          [0.5, 0,  0,  0.5],
          ],dtype=complex),
-    "bell01_density": lambda: oneOverRoot2*np.array([
+    "bell01_density": oneOverRoot2*np.array([
          [0,  0,   0,   0],
          [0,  0.5, 0.5, 0],
          [0,  0.5, 0.5, 0],
          [0,  0,   0,   0],
          ],dtype=complex),
-    "bell10_density": lambda: oneOverRoot2*np.array([
+    "bell10_density": oneOverRoot2*np.array([
          [ 0.5, 0,  0, -0.5],
          [ 0,   0,  0,  0  ],
          [ 0,   0,  0,  0  ],
          [-0.5, 0,  0,  0.5],
         ],dtype=complex),
-    "bell11_density": lambda: oneOverRoot2*np.array([
+    "bell11_density": oneOverRoot2*np.array([
          [0,  0,   0,   0],
          [0,  0.5,-0.5, 0],
          [0, -0.5, 0.5, 0],
@@ -70,20 +70,20 @@ globalNameSpace = {
 
 
     # common gates
-    "identity" : lambda: np.eye(2),
-    "hadamard" : lambda: oneOverRoot2 * np.array([
+    "identity": np.eye(2),
+    "hadamard": oneOverRoot2 * np.array([
             [1, 1],
            [1, -1]
         ],dtype = complex),
-    "pauliX" :  lambda: np.array([
+    "pauliX": np.array([
             [0, 1],
             [1, 0]
         ],dtype = complex),
-    "pauliY" :  lambda: np.array([
+    "pauliY": np.array([
             [0, -1j],
             [1j, -0]
         ],dtype = complex),
-    "pauliZ" :  lambda: np.array([
+    "pauliZ": np.array([
             [1, 0],
             [0, -1]
         ],dtype = complex),
@@ -97,7 +97,7 @@ globalNameSpace = {
     # common operations for density matrices and gates
     "tensorProd":    lambda *args, **kwargs: funcWrapper(tensorProd, *args, **kwargs),
     "ketToDensity":  lambda *args, **kwargs: funcWrapper(ketToDensity, *args, **kwargs),
-    "ketsToDensity": lambda *args, **kwargs: funcWrapper(ketsToDensity, *args, **kwargs),
+    "ketsToDensity": lambda *args, **kwargs: funcWrapper(ketsToDensityZipped, *args, **kwargs),
 
     # math functions
     "math_acos":      lambda *args, **kwargs: funcWrapper(math.acos, *args, **kwargs),

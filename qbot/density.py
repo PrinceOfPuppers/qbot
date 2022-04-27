@@ -16,7 +16,22 @@ def tensorProd(*args):
 def ketToDensity(ket: np.ndarray) -> np.ndarray:
     return np.outer(ket,ket)
 
-def ketsToDensity(pairs: List[Tuple[float, np.ndarray]]) -> np.ndarray:
+def ketsToDensity(kets:list[np.ndarray],probs: list[float] = None) -> np.ndarray:
+    '''converts set of kets to a density matrix'''
+    if probs == None:
+        return ketToDensity(kets[0])
+
+    if len(kets) != len(probs):
+        raise Exception("number of state vectors an number of probabilites must equal")
+
+    result = np.zeros( (kets[0].shape[0],kets[0].shape[0]),dtype=complex )
+
+    for i,ket in enumerate(kets):
+        result += probs[i]* np.outer(ket,ket)
+
+    return result
+
+def ketsToDensityZipped(pairs: List[Tuple[float, np.ndarray]]) -> np.ndarray:
     '''converts set of kets to a density matrix'''
     if len(pairs) == 0:
         return np.ndarray([], dtype = complex)
@@ -31,8 +46,8 @@ def ketsToDensity(pairs: List[Tuple[float, np.ndarray]]) -> np.ndarray:
         result += prob* np.outer(ket,ket)
     return result
 
-# def normalizeDensity(density: np.ndarray):
-#     density /= np.trace(density)
+def normalizeDensity(density: np.ndarray):
+    return density / np.trace(density)
 
 def partialTrace(density:np.ndarray, nQubits, mQubits, traceN = True):
     '''
@@ -103,8 +118,9 @@ def partialTraceArbitrary(density: np.ndarray, numQubits: int, systemAQubits: li
 
     return partialTraceBoth(swappedDensity,numSysAQubits,numSysBQubits)
 
-def replaceArbitrary(density: np.ndarray, newDensity: np.ndarray, qubitsToReplace: list[int], numQubits: int):
+def replaceArbitrary(density: np.ndarray, newDensity: np.ndarray, qubitsToReplace: list[int]):
     size = ensureSquare(density)
+    numQubits = log2(size)
     newSize = ensureSquare(newDensity)
     newQubits = log2(newSize)
     if len(qubitsToReplace) != newQubits:
@@ -118,9 +134,10 @@ def replaceArbitrary(density: np.ndarray, newDensity: np.ndarray, qubitsToReplac
         res = 0
 
         qubitsToReplaceOffset = 0
+
         for i in range(numQubits):
             if qubitsToReplaceOffset < len(qubitsToReplace) and i == qubitsToReplace[qubitsToReplaceOffset]:
-                mask = 1 << newQubitsOffset + qubitsToReplaceOffset
+                mask = 1 << numQubits -1 - newQubitsOffset - qubitsToReplaceOffset
                 res |= ((mask & state)!= 0) << (numQubits-1 - i)
 
                 qubitsToReplaceOffset+=1
@@ -220,30 +237,40 @@ def densityToStateEnsable(density:np.ndarray) -> List[Tuple[float, np.ndarray]]:
 
 
 def tmp():
+
     def stateMap(numQubits, qubitsToReplace, state):
         newQubitsOffset = numQubits - len(qubitsToReplace)
         res = 0
 
         qubitsToReplaceOffset = 0
+
         for i in range(numQubits):
+            print(f"{i}")
             if qubitsToReplaceOffset < len(qubitsToReplace) and i == qubitsToReplace[qubitsToReplaceOffset]:
-                mask = 1 << newQubitsOffset + qubitsToReplaceOffset
+                x= numQubits -1 - newQubitsOffset - qubitsToReplaceOffset
+                print(f'here1 {x}')
+                mask = 1 << x
+                print(f"mask {mask:0{numQubits}b}")
                 res |= ((mask & state)!= 0) << (numQubits-1 - i)
 
                 qubitsToReplaceOffset+=1
             else:
+                print('here2')
                 mask = 1 << numQubits-1 - i + qubitsToReplaceOffset
+                print(f"mask {mask:0{numQubits}b}")
                 res |= ((mask & state)!= 0) << (numQubits-1 - i)
         return res
 
-    numQubits = 5
-    qubitsToReplace = [1,2]
-    state = 0b10101
+    numQubits = 2
+    qubitsToReplace = [0]
+    state = 0b01
     x = stateMap(numQubits, qubitsToReplace, state)
     print(f"{state:0{numQubits}b}")
     print(f"{x:0{numQubits}b}")
 
 if __name__ == "__main__":
+    tmp()
+    exit()
     density = ketsToDensity([ np.array([1j,0],dtype=complex),np.array([0,1j],dtype=complex) ],[3/4,1/4])
 
     print(density)
