@@ -1,7 +1,7 @@
 import math
 import numpy as np
 from qbot.evaluation import evaluate
-from qbot.density import partialTraceArbitrary
+from qbot.density import partialTraceArbitrary, replaceArbitrary
 from qbot.probVal import ProbVal, funcWrapper
 import sys
 
@@ -70,66 +70,85 @@ def customTypeError(lines, lineNum, expectedTypes:list, gotType:str):
 
     return formatError(lines, lineNum, "TypeError", f"{gotType} cannot be interpreted as {expectedTypeStr}")
 
+def SizeError(lines, lineNum, str):
+    return formatError(lines, lineNum, "SizeError", str)
+
+def pythonError(lines, lineNum, e: Exception):
+    return formatError(lines, lineNum, e.__class__.__name__, str(e))
+
+
 # operations
-def _qset(hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets):
+def _qset(val, localNameSpace, lines, lineNum, numQubits, targets):
     for target in targets:
         if target < 0 or target > numQubits - 1:
             raiseFormattedError(customIndexError(lines, lineNum, 'target', target, numQubits - 1))
 
-    _, hilbertSpace = partialTraceArbitrary(hilbertSpace, numQubits, targets)
+    try:
+        localNameSpace['state'] = replaceArbitrary(localNameSpace['state'], val, targets)
+        print("here0\n", localNameSpace['state'])
+    except ValueError as e:
+        raiseFormattedError(pythonError(lines,lineNum, e))
 
-def qset(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+
+
+def qset(localNameSpace, lines, lineNum, tokens):
     '''sets current hilbertspace (or some subspace of it) to a specific value'''
-    numQubits = np.log2(hilbertSpace.shape[0])
+    if len(localNameSpace['state'].shape) == 0:
+        numQubits = 0
+    else:
+        numQubits = np.log2(localNameSpace['state'].shape[0])
 
     expr:str = tokens[1]
     val = convertToDensity(lines, lineNum, evaluate(expr, localNameSpace))
 
     if len(tokens) == 2:
-        hilbertSpace = val
+        localNameSpace['state'] = val
+        print("here-1\n", localNameSpace['state'])
         return
     else:
-        targets = evaluate(tokens[2])
+        targets = evaluate(tokens[2], localNameSpace)
 
         if isinstance(targets, ProbVal):
-            funcWrapper(_qset, hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets)
+            funcWrapper(_qset, localNameSpace['state'], localNameSpace, lines, lineNum, numQubits, targets)
+            print("here1\n", localNameSpace['state'])
             return
 
         if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
-            _qset(hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets)
+            _qset(val, localNameSpace, lines, lineNum, numQubits, targets)
+            print("here2\n", localNameSpace['state'])
             return
         raiseFormattedError(customTypeError(lines, lineNum, ['list', 'tuple', 'set'], type(targets)))
 
 
-def _disc(hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets):
+def _disc(localNameSpace, lines, lineNum, numQubits, targets):
     for target in targets:
         if target < 0 or target > numQubits - 1:
             raiseFormattedError(customIndexError(lines, lineNum, 'target', target, numQubits - 1))
 
-    _, hilbertSpace = partialTraceArbitrary(hilbertSpace, numQubits, targets)
+    _, localNameSpace['state'] = partialTraceArbitrary(localNameSpace['state'], numQubits, targets)
 
-def disc(hilbertSpace, localNameSpace, lines, lineNum, tokens):
-    numQubits = np.log2(hilbertSpace.shape[0])
+def disc(localNameSpace, lines, lineNum, tokens):
+    numQubits = np.log2(localNameSpace['state'].shape[0])
     targets = evaluate(tokens[1], localNameSpace)
     if isinstance(targets, ProbVal):
-        funcWrapper(_disc, hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets)
+        funcWrapper(_disc, localNameSpace['state'], localNameSpace, lines, lineNum, numQubits, targets)
         return
     if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
-        _disc(hilbertSpace, localNameSpace, lines, lineNum, numQubits, targets)
+        _disc(localNameSpace, lines, lineNum, numQubits, targets)
         return
     raiseFormattedError(customTypeError(lines, lineNum, ['list', 'tuple', 'set'], type(targets)))
 
 
-def jump(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+def jump(localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
 
-def cjmp(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+def cjmp(localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
 
-def qjmp(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+def qjmp(localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
 
-def cdef(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+def cdef(localNameSpace, lines, lineNum, tokens):
     name:str = tokens[1]
     if not name.isidentifier():
         raiseFormattedError(InvalidVariableName(lines, lineNum, name))
@@ -138,7 +157,7 @@ def cdef(hilbertSpace, localNameSpace, lines, lineNum, tokens):
     val = evaluate(expr, localNameSpace)
     localNameSpace[name] = val
 
-def qdef(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+def qdef(localNameSpace, lines, lineNum, tokens):
     name:str = tokens[1]
     if not name.isidentifier():
         raiseFormattedError(InvalidVariableName(lines, lineNum, name))
@@ -148,19 +167,19 @@ def qdef(hilbertSpace, localNameSpace, lines, lineNum, tokens):
     localNameSpace[name] = val
 
 
-def gate(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+def gate(localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
 
-def perm(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+def perm(localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
 
-def meas(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+def meas(localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
 
-def mark(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+def mark(localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
 
-def cout(hilbertSpace, localNameSpace, lines, lineNum, tokens):
+def cout(localNameSpace, lines, lineNum, tokens):
     print(evaluate(tokens[1], localNameSpace))
 
 # "op_name: (func, arg_range_start, arg_range_end),
@@ -206,9 +225,9 @@ def processLineIntoTokens(line:str):
 
 def executeTxt(text: str):
     lines = text.splitlines()
-    hilbertSpace = np.ndarray([], dtype = complex)
+    state = np.ndarray([], dtype = complex)
     localNameSpace = {
-        'state': hilbertSpace
+        'state': state
     }
 
     lineNum = -1
@@ -232,5 +251,5 @@ def executeTxt(text: str):
         if numArgs < argRangeStart or numArgs > argRangeEnd:
             raiseFormattedError(NumArgumentsError(lines, lineNum, tokens[0], numArgs, argRangeStart, argRangeEnd))
 
-        op(hilbertSpace, localNameSpace, lines, lineNum, tokens)
+        op(localNameSpace, lines, lineNum, tokens)
 
