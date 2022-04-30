@@ -1,7 +1,9 @@
 import math
 import numpy as np
 from qbot.probVal import ProbVal, funcWrapper
-from qbot.density import ketToDensity, ketsToDensityZipped, tensorProd
+from qbot.density import ketToDensity, ketsToDensityZipped, tensorProd, densityToStateEnsable, tensorExp
+import qbot.errors as err
+import qbot.basis as basis
 
 oneOverRoot2 = 2**(-1/2)
 
@@ -21,53 +23,6 @@ def compNth_density(numQubits, n):
 globalNameSpace = {
     '__builtins__': {},
     "ProbVal":    ProbVal.fromZipped,
-
-    # common kets
-    "comp0_ket": np.array([1,0], dtype = complex),
-    "comp1_ket": np.array([0,1], dtype = complex),
-
-    "compNth_ket": compNth_ket,
-
-    "hadamardPlus_ket":  oneOverRoot2*np.array([1,1] ,dtype=complex),
-    "hadamardMinus_ket": oneOverRoot2*np.array([1,-1],dtype=complex),
-    "bell00_ket": oneOverRoot2*np.array([1,0,0,1] ,dtype=complex),
-    "bell01_ket": oneOverRoot2*np.array([0,1,1,0] ,dtype=complex),
-    "bell10_ket": oneOverRoot2*np.array([1,0,0,-1],dtype=complex),
-    "bell11_ket": oneOverRoot2*np.array([0,1,-1,0],dtype=complex),
-
-    "comp0_density": np.array([[1, 0],[0, 0]], dtype = complex),
-    "comp1_density": np.array([[0, 0], [0, 1]], dtype = complex),
-
-    "compNth_density": compNth_density,
-
-    # common density
-    "hadamardPlus_density":  oneOverRoot2*np.array([[0.5, 0.5], [0.5, 0.5]], dtype=complex),
-    "hadamardMinus_density": oneOverRoot2*np.array([[0.5, -0.5], [-0.5, 0.5]], dtype=complex),
-    "bell00_density": oneOverRoot2*np.array([
-         [0.5, 0,  0,  0.5],
-         [0,   0,  0,  0  ],
-         [0,   0,  0,  0  ],
-         [0.5, 0,  0,  0.5],
-         ],dtype=complex),
-    "bell01_density": oneOverRoot2*np.array([
-         [0,  0,   0,   0],
-         [0,  0.5, 0.5, 0],
-         [0,  0.5, 0.5, 0],
-         [0,  0,   0,   0],
-         ],dtype=complex),
-    "bell10_density": oneOverRoot2*np.array([
-         [ 0.5, 0,  0, -0.5],
-         [ 0,   0,  0,  0  ],
-         [ 0,   0,  0,  0  ],
-         [-0.5, 0,  0,  0.5],
-        ],dtype=complex),
-    "bell11_density": oneOverRoot2*np.array([
-         [0,  0,   0,   0],
-         [0,  0.5,-0.5, 0],
-         [0, -0.5, 0.5, 0],
-         [0,  0,   0,   0],
-        ],dtype=complex),
-
 
     # common gates
     "identity": np.eye(2),
@@ -96,8 +51,10 @@ globalNameSpace = {
 
     # common operations for density matrices and gates
     "tensorProd":    lambda *args, **kwargs: funcWrapper(tensorProd, *args, **kwargs),
+    "tensorExp":     lambda *args, **kwargs: funcWrapper(tensorExp, *args, **kwargs),
     "ketToDensity":  lambda *args, **kwargs: funcWrapper(ketToDensity, *args, **kwargs),
     "ketsToDensity": lambda *args, **kwargs: funcWrapper(ketsToDensityZipped, *args, **kwargs),
+    "densityToKets": densityToStateEnsable,
 
     # math functions
     "math_acos":      lambda *args, **kwargs: funcWrapper(math.acos, *args, **kwargs),
@@ -606,6 +563,10 @@ globalNameSpace = {
     "linalg_test":         lambda *args, **kwargs: funcWrapper(np.linalg.test, *args, **kwargs),
 }
 
+for b in basis.allBasis:
+    for name in b.names:
+        globalNameSpace[name] = b
+
 def evaluate(expression: str, localNameSpace: dict):
     code = compile(expression, "<string>", "eval")
     #print(code.co_names)
@@ -614,3 +575,10 @@ def evaluate(expression: str, localNameSpace: dict):
         #if name not in localNameSpace and name not in globalNameSpace:
             #raise NameError(f"Unknown Name: '{name}'")
     return eval(code, globalNameSpace, localNameSpace)
+
+def evaluateWrapper(lines, lineNum, expression: str, localNameSpace: dict):
+    try:
+        return evaluate(expression, localNameSpace)
+    except Exception as e:
+        err.pythonError(lines, lineNum, e)
+

@@ -141,9 +141,9 @@ def genGateForFullHilbertSpace(numQubits: int, firstTargetQubit: int, gate: np.n
 
     gateNumQubits = log2(size)
 
-
     if(firstTargetQubit + gateNumQubits - 1 >= numQubits):
-        raise Exception("numQubits must be > firstTargetQubit + size - 1")
+        raise IndexError(f"{gateNumQubits} qubit gate does not fit the {numQubits} qubit hilbertspace when started on the {firstTargetQubit} qubit")
+    
 
     result = gate
     if(firstTargetQubit != 0):
@@ -302,6 +302,8 @@ def genMultiControlledGate(numQubits:int, controlQubits:list[int], firstTargetQu
 
     return g
 
+def applyGate(gate, density):
+    return gate @ density @ gate.conj().T
 
 
 if __name__ == "__main__":

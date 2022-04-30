@@ -13,6 +13,9 @@ def tensorProd(*args):
         x = np.kron(x, args[i])
     return x
 
+def tensorExp(state, n):
+    return tensorProd(n*[state])
+
 def ketToDensity(ket: np.ndarray) -> np.ndarray:
     return np.outer(ket,ket)
 
@@ -30,6 +33,18 @@ def ketsToDensity(kets:list[np.ndarray],probs: list[float] = None) -> np.ndarray
         result += probs[i]* np.outer(ket,ket)
 
     return result
+
+def densityEnsambleToDensity(densities: list[np.ndarray], probs: list[float]):
+    if len(probs) != len(densities):
+        raise Exception("number of state vectors an number of probabilites must equal")
+
+    result = np.zeros( densities[0].shape ,dtype=complex )
+
+    for i,density in enumerate(densities):
+        result += probs[i]* density
+
+    return result
+
 
 def ketsToDensityZipped(pairs: List[Tuple[float, np.ndarray]]) -> np.ndarray:
     '''converts set of kets to a density matrix'''
@@ -152,76 +167,6 @@ def replaceArbitrary(density: np.ndarray, newDensity: np.ndarray, qubitsToReplac
 
     return swappedDensity
 
-
-class MeasurementResult:
-    __slots__ = (
-        'unMeasuredDensity', # [np.ndarray] state of the unmeasured qubits after the measurement
-        'toMeasureDensity',  # [np.ndarray] state of the qubits to measure, before measurement 
-        'probs',             # [float]      probabilities of getting each of the basis states
-    )
-    def __init__(self, unMeasuredDensity, toMeasureDensity, probs):
-        self.unMeasuredDensity = unMeasuredDensity 
-        self.toMeasureDensity = toMeasureDensity 
-        self.probs = probs
-    def __repr__(self):
-        return (
-            f'MeasurementResult:\n'
-            f'unMeasuredDensity: \n{np.array_repr(self.unMeasuredDensity)}\n'
-            f'toMeasureDensity: \n{np.array_repr(self.toMeasureDensity)}\n'
-            f'probs: \n{self.probs.__repr__()}\n'
-        )
-
-def measureTopNQubits(density: np.ndarray, basisDensity: list[np.ndarray], N: int) -> MeasurementResult:
-    '''
-    Measures the top N Qubits with respect to the provided basis (must also be density matrices)
-    '''
-    numQubits = log2(ensureSquare(density))
-
-    if (numQubits == N):
-        toMeasureDensity = density
-        unMeasuredDensity = np.array([],dtype=complex)
-    else:
-        toMeasureDensity, unMeasuredDensity = partialTraceBoth(density, N, numQubits - N)
-    
-    probs = []
-    s = 0
-
-    for b in basisDensity:
-        probs.append(
-            abs(np.trace(np.matmul(toMeasureDensity, b)))
-        )
-        s += probs[-1]
-
-    for i in range(0,len(probs)):
-        probs[i] /= s
-    
-    return MeasurementResult(unMeasuredDensity,toMeasureDensity,probs)
-
-def measureArbitrary(density: np.ndarray, basisDensity: List[np.ndarray], toMeasure: List[int]) -> MeasurementResult:
-    '''
-    Measures all qubits in toMeasure
-    '''
-    numQubits = log2(ensureSquare(density))
-
-    if len(toMeasure) == numQubits:
-        toMeasureDensity = density
-        unMeasuredDensity = np.array([],dtype=complex)
-    else:
-        toMeasureDensity, unMeasuredDensity = partialTraceArbitrary(density, numQubits, toMeasure)
-    
-    probs = []
-    s = 0
-
-    for b in basisDensity:
-        probs.append(
-            abs(np.trace(np.matmul(toMeasureDensity, b)))
-        )
-        s += probs[-1]
-
-    for i in range(0,len(probs)):
-        probs[i] /= s
-    
-    return MeasurementResult(unMeasuredDensity,toMeasureDensity,probs)
 
     
 
