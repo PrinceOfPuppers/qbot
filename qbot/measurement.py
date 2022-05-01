@@ -23,7 +23,7 @@ class MeasurementResult:
     def __repr__(self):
         s = ''
         for i, prob in enumerate(self.probs):
-            s += f'{prob} ({prob*100}%) - {self.basisSymbols[i]}\n'
+            s += f'{self.basisSymbols[i]}- {prob} ({prob*100}%)\n'
         return s
 
     def toDensity(self):
@@ -60,7 +60,7 @@ class MeasurementResult:
 
 
 
-def tensorPermute(d: Union[list[np.ndarray], Basis], n: int, numTensProd: int):
+def tensorPermute(numTensProd: int, n: int, d: Union[list[np.ndarray], Basis]):
     state = np.array([], dtype=complex)
 
     if isinstance(d, Basis):
@@ -76,7 +76,7 @@ def tensorPermute(d: Union[list[np.ndarray], Basis], n: int, numTensProd: int):
 
     return state
 
-def permuteBasis(basis: Basis, n: int, numTensProd: int):
+def permuteBasis(numTensProd: int, n: int, basis: Basis):
     state = np.array([], dtype=complex)
     s = ''
 
@@ -126,7 +126,7 @@ def measureArbitraryMultiState(density: np.ndarray, basis: Basis, toMeasure: lis
     basisSymbols = []
     s = 0
     for i in range(0, len(basis.density)**numTensProd):
-        basisState, basisStateSymbol = permuteBasis(basis, i, numTensProd)
+        basisState, basisStateSymbol = permuteBasis(numTensProd, i, basis)
         probs.append(
             abs(np.trace(np.matmul(toMeasureDensity, basisState)))
         )

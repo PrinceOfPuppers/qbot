@@ -6,19 +6,24 @@ import qbot.measurement as meas
 import qbot.errors as err
 import qbot.basis as basis
 
+from typing import Callable
+
 oneOverRoot2 = 2**(-1/2)
 
-
-def compNth_ket(numQubits, n):
-    x = np.zeros(2**numQubits, dtype = complex)
-    x[n] = 1
-    return x
-
-def compNth_density(numQubits, n):
+def simonsGate(numQubits, f: Callable):
+    '''
+    unitary for the blackbox function described in simon's algorithm
+    U_f: |x>|b> -> |x>|b addmod2 f(x)>
+    '''
     size = 2**numQubits
-    x = np.zeros((size,size), dtype = complex)
-    x[n][n] = 1
-    return x
+    arr = np.zeros((size,size), dtype = complex)
+    for i in range(size):
+        x = i // 2
+        b = i % 2
+        index = (f(x) + b)%2
+        arr[index][i] = 1
+
+    return arr
 
 
 globalNameSpace = {
@@ -44,10 +49,13 @@ globalNameSpace = {
             [0, -1]
         ],dtype = complex),
 
+    # other gates
+    "simonsGate":    lambda numQubits, f: funcWrapper(simonsGate, numQubits, f),
+
     # collections (to make them behave with ProbVal better)
-    "plist":           lambda *args: funcWrapper(lambda *a: list(a),  *args),
-    "ptuple":          lambda *args: funcWrapper(lambda *a: tuple(a), *args),
-    "pset":            lambda *args: funcWrapper(lambda *a: set(a),   *args),
+    "plist":         lambda *args: funcWrapper(lambda *a: list(a),  *args),
+    "ptuple":        lambda *args: funcWrapper(lambda *a: tuple(a), *args),
+    "pset":          lambda *args: funcWrapper(lambda *a: set(a),   *args),
     #"pdict":           lambda *args: funcWrapper(dict, args),
 
     # common operations for density matrices and gates
