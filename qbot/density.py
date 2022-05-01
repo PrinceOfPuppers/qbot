@@ -6,12 +6,22 @@ from typing import List, Tuple
 
 def tensorProd(*args):
     if len(args) == 0:
-        return np.ndarray([], dtype = complex)
+        return np.array([], dtype = complex)
 
-    x = args[0]
-    for i in range(1, len(args)):
-        x = np.kron(x, args[i])
-    return x
+    x = None
+    i = 0
+    while i < len(args):
+        if args[i].size != 0:
+            x = args[i]
+            i+=1
+            break
+        i+=1
+    while i < len(args):
+        if args[i].size != 0:
+            x = np.kron(x, args[i])
+        i+=1
+
+    return x if x is not None else np.array([], dtype = complex)
 
 def tensorExp(state, n):
     return tensorProd(n*[state])
@@ -49,7 +59,7 @@ def densityEnsambleToDensity(densities: list[np.ndarray], probs: list[float]):
 def ketsToDensityZipped(pairs: List[Tuple[float, np.ndarray]]) -> np.ndarray:
     '''converts set of kets to a density matrix'''
     if len(pairs) == 0:
-        return np.ndarray([], dtype = complex)
+        return np.array([], dtype = complex)
 
     if len(pairs) == 1:
         return ketToDensity(pairs[0][1])

@@ -41,11 +41,7 @@ def NumArgumentsError(lines, lineNum, op, numArgsGiven, numRequiredMin, numRequi
 def customIndexError(lines, lineNum, targetOrControl, index, maxIndex, minIndex = 0):
     return formatError(lines, lineNum, "IndexError", f"{targetOrControl} index {index} outside of valid range [{minIndex}, {maxIndex}]")
 
-def unknownBasis(lines, lineNum, providedBasis):
-    newline = '\n'
-    return formatError(lines, lineNum, "UnknownBasis", f"{providedBasis} does not match any known basis alias:{newline} {newline.join([str(b.names) for b in basis.allBasis])}")
-
-def customTypeError(lines, lineNum, expectedTypes:list, gotType:str):
+def customTypeError(lines, lineNum, expectedTypes:list[str], gotType:str):
     if len(expectedTypes) > 1:
         expectedTypeStr = f"any of {expectedTypes}"
     else:

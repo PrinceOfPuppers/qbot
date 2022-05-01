@@ -1,7 +1,8 @@
 import math
 import numpy as np
 from qbot.probVal import ProbVal, funcWrapper
-from qbot.density import ketToDensity, ketsToDensityZipped, tensorProd, densityToStateEnsable, tensorExp
+import qbot.density as density
+import qbot.measurement as meas
 import qbot.errors as err
 import qbot.basis as basis
 
@@ -50,11 +51,12 @@ globalNameSpace = {
     #"pdict":           lambda *args: funcWrapper(dict, args),
 
     # common operations for density matrices and gates
-    "tensorProd":    lambda *args, **kwargs: funcWrapper(tensorProd, *args, **kwargs),
-    "tensorExp":     lambda *args, **kwargs: funcWrapper(tensorExp, *args, **kwargs),
-    "ketToDensity":  lambda *args, **kwargs: funcWrapper(ketToDensity, *args, **kwargs),
-    "ketsToDensity": lambda *args, **kwargs: funcWrapper(ketsToDensityZipped, *args, **kwargs),
-    "densityToKets": densityToStateEnsable,
+    "tensorProd":    lambda *args, **kwargs: funcWrapper(density.tensorProd, *args, **kwargs),
+    "tensorExp":     lambda *args, **kwargs: funcWrapper(density.tensorExp, *args, **kwargs),
+    "tensorPermute": lambda *args, **kwargs: funcWrapper(meas.tensorPermute, *args, **kwargs),
+    "ketToDensity":  lambda *args, **kwargs: funcWrapper(density.ketToDensity, *args, **kwargs),
+    "ketsToDensity": lambda *args, **kwargs: funcWrapper(density.ketsToDensityZipped, *args, **kwargs),
+    "densityToKets": density.densityToStateEnsable,
 
     # math functions
     "math_acos":      lambda *args, **kwargs: funcWrapper(math.acos, *args, **kwargs),
@@ -580,5 +582,5 @@ def evaluateWrapper(lines, lineNum, expression: str, localNameSpace: dict):
     try:
         return evaluate(expression, localNameSpace)
     except Exception as e:
-        err.pythonError(lines, lineNum, e)
+        err.raiseFormattedError(err.pythonError(lines, lineNum, e))
 

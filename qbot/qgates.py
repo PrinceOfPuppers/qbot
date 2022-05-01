@@ -142,7 +142,7 @@ def genGateForFullHilbertSpace(numQubits: int, firstTargetQubit: int, gate: np.n
     gateNumQubits = log2(size)
 
     if(firstTargetQubit + gateNumQubits - 1 >= numQubits):
-        raise IndexError(f"{gateNumQubits} qubit gate does not fit the {numQubits} qubit hilbertspace when started on the {firstTargetQubit} qubit")
+        raise IndexError(f"{gateNumQubits} qubit gate does not fit the {numQubits} qubit hilbertspace when started on qubit {firstTargetQubit}")
     
 
     result = gate

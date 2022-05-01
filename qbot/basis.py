@@ -26,7 +26,7 @@ class Basis:
             )
 
 computation = Basis(
-    ['comp', 'computation', 'computational'],
+    ['comp', 'computation', 'computational', 'compBasis', 'computationBasis', 'computationalBasis'],
     [
         np.array([1,0], dtype = complex),
         np.array([0,1], dtype = complex),
@@ -50,7 +50,7 @@ computation = Basis(
 oneOverRoot2 = 2**(-1/2)
 
 hadamard = Basis(
-    ['hadamard', 'had', 'hada'],
+    ['hadamardBasis', 'hadBasis', 'hadaBasis'],
     [
         oneOverRoot2*np.array([1,1] ,dtype=complex),
         oneOverRoot2*np.array([1,-1],dtype=complex)
@@ -60,7 +60,7 @@ hadamard = Basis(
 )
 
 bell = Basis(
-    ['bell', 'epr'],
+    ['bell', 'epr', 'bellBasis', 'eprBasis'],
     [
         oneOverRoot2*np.array([1,0,0,1] ,dtype=complex),
         oneOverRoot2*np.array([0,1,1,0] ,dtype=complex),

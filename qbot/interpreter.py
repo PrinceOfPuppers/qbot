@@ -3,7 +3,9 @@ import numpy as np
 from qbot.evaluation import evaluateWrapper, globalNameSpace
 import qbot.qgates as gates
 import qbot.density as density
+import qbot.basis as basis
 from qbot.probVal import ProbVal, funcWrapper
+from qbot.measurement import measureArbitraryMultiState, MeasurementResult
 import qbot.errors as err
 import sys
 
@@ -23,9 +25,15 @@ def convertToDensity(lines, lineNum, val):
 
 
 def hilbertSpaceNumQubits(hilbertSpace):
-    if len(hilbertSpace.shape) == 0:
+    if len(hilbertSpace.shape) == 0 or hilbertSpace.size == 0:
         return 0
     return int(np.log2(hilbertSpace.shape[0]))
+
+def getVarName(lines, lineNum, token):
+    if not token.isidentifier():
+        err.raiseFormattedError(err.InvalidVariableName(lines, lineNum, token))
+    return token
+
 
 
 # operations
@@ -97,22 +105,18 @@ def qjmp(localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
 
 def cdef(localNameSpace, lines, lineNum, tokens):
-    name:str = tokens[1]
-    if not name.isidentifier():
-        err.raiseFormattedError(err.InvalidVariableName(lines, lineNum, name))
+    varName = getVarName(lines, lineNum, tokens[1])
 
     expr = tokens[2]
     val = evaluateWrapper(lines, lineNum, expr, localNameSpace)
-    localNameSpace[name] = val
+    localNameSpace[varName] = val
 
 def qdef(localNameSpace, lines, lineNum, tokens):
-    name:str = tokens[1]
-    if not name.isidentifier():
-        err.raiseFormattedError(err.InvalidVariableName(lines, lineNum, name))
+    varName = getVarName(lines, lineNum, tokens[1])
 
     expr = tokens[2]
     val = convertToDensity(lines, lineNum, evaluateWrapper(lines, lineNum, expr, localNameSpace))
-    localNameSpace[name] = val
+    localNameSpace[varName] = val
 
 
 def gate(localNameSpace, lines, lineNum, tokens):
@@ -164,16 +168,32 @@ def perm(localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
 
 def meas(localNameSpace, lines, lineNum, tokens):
-    name = tokens[0].lower()
+    varName = getVarName(lines, lineNum, tokens[1])
 
-    for b in allBasis:
-        if name in b.names:
-            return
+    b = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
+    # TODO allow for probval basis
+    if not isinstance(b, basis.Basis):
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['Basis'], str(type(b))))
 
-    err.raiseFormattedError(err.unknownBasis(lines, lineNum, name))
+    try:
+        if len(tokens) < 4:
+            result = measureArbitraryMultiState(localNameSpace['state'], b)
+        else:
+            targets = evaluateWrapper(lines, lineNum, tokens[3], localNameSpace)
+            if isinstance(targets, list):
+                result = measureArbitraryMultiState(localNameSpace['state'], b, targets)
+            elif isinstance(targets, ProbVal):
+                result = funcWrapper(measureArbitraryMultiState, localNameSpace['state'], b, targets)
+            else:
+                err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list<int>', 'ProbVal<list<int>>'], str(type(b))))
+    except Exception as e:
+        err.raiseFormattedError(err.pythonError(lines, lineNum, e))
 
+    if isinstance(result, ProbVal):
+        result = MeasurementResult.fromProbVal(result)
 
-    raise NotImplementedError()
+    localNameSpace[varName] = result
+
 
 def mark(localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
@@ -192,7 +212,7 @@ operations = {
     'qdef': (qdef, 2, 2),
     'gate': (gate, 2, 3),
     'perm': (perm, 1, 1),
-    'meas': (meas, 2, 2),
+    'meas': (meas, 2, 3),
     'mark': (mark, 1, 1),
     'cout': (cout, 1, 1),
 }
@@ -224,7 +244,7 @@ def processLineIntoTokens(line:str):
 
 def executeTxt(text: str):
     lines = text.splitlines()
-    state = np.ndarray([], dtype = complex)
+    state = np.array([], dtype = complex)
     localNameSpace = {
         'state': state
     }

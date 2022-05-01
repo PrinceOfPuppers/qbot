@@ -1,20 +1,21 @@
 import numpy as np
 
 from qbot.basis import Basis
+from qbot.probVal import ProbVal
 from qbot.density import densityEnsambleToDensity, tensorProd, partialTraceArbitrary
 from qbot.helpers import ensureSquare, log2
+
+from typing import Union
 
 class MeasurementResult:
     __slots__ = (
         'unMeasuredDensity',
-        'toMeasureDensity',
         'probs',
         'basisDensity',
         'basisSymbols'
     )
-    def __init__(self, unMeasuredDensity: np.ndarray, toMeasureDensity: np.ndarray, probs: list[float], basisDensity: list[np.ndarray], basisSymbols:list[str]):
+    def __init__(self, unMeasuredDensity: np.ndarray, probs: list[float], basisDensity: list[np.ndarray], basisSymbols:list[str]):
         self.unMeasuredDensity = unMeasuredDensity 
-        self.toMeasureDensity = toMeasureDensity 
         self.probs = probs
         self.basisDensity = basisDensity
         self.basisSymbols = basisSymbols
@@ -28,10 +29,55 @@ class MeasurementResult:
     def toDensity(self):
         return densityEnsambleToDensity(self.basisDensity, self.probs)
 
+    @staticmethod
+    def fromProbVal(pv: ProbVal):
+        assert len(ProbVal.probs) > 0
+
+        newProbs = []
+        meas = pv.values[0]
+        assert isinstance(meas, MeasurementResult)
+        newProbs = meas.probs.copy()
+        for i in range(1, len(pv.probs)):
+            prob = pv.probs[i]
+            meas = pv.values[i]
+            assert isinstance(meas, MeasurementResult)
+            assert len(meas.probs) == len(newProbs)
+            for measProb in meas.probs:
+                newProbs[i] += prob*measProb
+
+        s = sum(newProbs)
+        for i in range(len(newProbs)):
+            newProbs[i] /= s
+
+        # note we are assuming that the basis for all measurements in probval are the same, asserting this would require alot of comparisons
+        unMeasuredDensity = densityEnsambleToDensity([m.unMeasuredDensity for m in pv.values], pv.probs)
+
+        # TODO: normalize?
+
+        return MeasurementResult(unMeasuredDensity, newProbs, meas.basisDensity, meas.basisSymbols)
 
 
-def indexBasisStatePermutation(basis: Basis, n: int, numTensProd: int):
-    state = np.ndarray([], dtype=complex)
+
+
+
+def tensorPermute(d: Union[list[np.ndarray], Basis], n: int, numTensProd: int):
+    state = np.array([], dtype=complex)
+
+    if isinstance(d, Basis):
+        d = d.density
+
+    remainingIndex = n
+    i = 0
+    while i < numTensProd:
+        index = remainingIndex%len(d)
+        state = tensorProd(d[index], state)
+        remainingIndex //= len(d)
+        i+=1
+
+    return state
+
+def permuteBasis(basis: Basis, n: int, numTensProd: int):
+    state = np.array([], dtype=complex)
     s = ''
 
     remainingIndex = n
@@ -46,14 +92,17 @@ def indexBasisStatePermutation(basis: Basis, n: int, numTensProd: int):
     return state, s
 
 
-def measureArbitraryMultiState(density: np.ndarray, basis: Basis, toMeasure: list[int]):
+def measureArbitraryMultiState(density: np.ndarray, basis: Basis, toMeasure: list[int] = None):
     '''measures all targets in toMeasure, if basis states are smaller than the number of targets, will measure in basis of tensorproducts of basis states'''
     numQubits = log2(ensureSquare(density))
 
     numQubits = log2(ensureSquare(density))
-    toMeasure = list(set(toMeasure))
 
-    numTargets = len(toMeasure)
+    if toMeasure is None:
+        numTargets = numQubits
+    else:
+        numTargets = len(toMeasure)
+
     basisQubitSize = log2(ensureSquare(basis.density[0]))
 
     if numTargets == 0:
@@ -63,11 +112,11 @@ def measureArbitraryMultiState(density: np.ndarray, basis: Basis, toMeasure: lis
         raise ValueError(f"number of qubits to measure {numTargets} must be divisable by the number of qubits in the basis states {basisQubitSize}")
 
 
-    if len(toMeasure) == numQubits:
+    if toMeasure is None or len(toMeasure) == numQubits:
         toMeasureDensity = density
-        unMeasuredDensity = np.array([],dtype=complex)
     else:
-        toMeasureDensity, unMeasuredDensity = partialTraceArbitrary(density, numQubits, toMeasure)
+        toMeasure = list(set(toMeasure))
+        toMeasureDensity, _ = partialTraceArbitrary(density, numQubits, toMeasure)
 
 
     numTensProd = numTargets // basisQubitSize
@@ -77,7 +126,7 @@ def measureArbitraryMultiState(density: np.ndarray, basis: Basis, toMeasure: lis
     basisSymbols = []
     s = 0
     for i in range(0, len(basis.density)**numTensProd):
-        basisState, basisStateSymbol = indexBasisStatePermutation(basis, i, numTensProd)
+        basisState, basisStateSymbol = permuteBasis(basis, i, numTensProd)
         probs.append(
             abs(np.trace(np.matmul(toMeasureDensity, basisState)))
         )
@@ -89,4 +138,4 @@ def measureArbitraryMultiState(density: np.ndarray, basis: Basis, toMeasure: lis
     for i in range(0,len(probs)):
         probs[i] /= s
     
-    return MeasurementResult(unMeasuredDensity,toMeasureDensity,probs, basisStates, basisSymbols)
+    return MeasurementResult(toMeasureDensity,probs, basisStates, basisSymbols)

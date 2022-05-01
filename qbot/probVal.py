@@ -57,6 +57,9 @@ def funcWrapper(func, *args, **kwargs):
         probs.append(prob)
         vals.append(func(*argPermutation, **kwargPermutation))
 
+    if len(probs) == 1:
+        return vals[0]
+
     return ProbVal(probs, vals)
 
 
