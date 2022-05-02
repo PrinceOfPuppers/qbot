@@ -19,6 +19,48 @@ def _checkGate(gate: np.ndarray):
 def genIdentity(numQubits):
     return np.eye(2**numQubits)
 
+
+def genSimonsGate(numQubits, f: Callable):
+    '''
+    unitary for the blackbox function described in simon's algorithm
+    U_f: |x>|b> -> |x>|b addmod2 f(x)>
+    '''
+    size = 2**numQubits
+    arr = np.zeros((size,size), dtype = complex)
+    for i in range(size):
+        x = i // 2
+        b = i % 2
+        index = (f(x) + b)%2
+        arr[index][i] = 1
+
+    return arr
+
+
+def genXRotGate(theta):
+    stheta = np.sin(theta/2)
+    ctheta = np.sin(theta/2)
+    return np.array([
+        [   ctheta, -1j*stheta],
+        [1j*stheta,     ctheta]
+    ], dtype = complex)
+
+
+def genYRotGate(theta):
+    stheta = np.sin(theta/2)
+    ctheta = np.sin(theta/2)
+    return np.array([
+        [ctheta, -stheta],
+        [stheta,  ctheta]
+    ], dtype = complex)
+
+
+def genZRotGate(theta):
+    return np.array([
+        [np.exp(-1j*theta/2), 0              ],
+        [0,                   np.exp(theta/2)]
+    ], dtype = complex)
+
+
 def genSwapGate(numQubits, q1, q2):
     if (q1 == q2):
         return np.eye(2**numQubits)

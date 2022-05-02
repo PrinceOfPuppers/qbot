@@ -50,7 +50,7 @@ computation = Basis(
 oneOverRoot2 = 2**(-1/2)
 
 hadamard = Basis(
-    ['hadamardBasis', 'hadBasis', 'hadaBasis'],
+    ['hadamard', 'had', 'hada', 'hadamardBasis', 'hadBasis', 'hadaBasis'],
     [
         oneOverRoot2*np.array([1,1] ,dtype=complex),
         oneOverRoot2*np.array([1,-1],dtype=complex)

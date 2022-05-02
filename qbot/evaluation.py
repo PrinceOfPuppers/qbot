@@ -5,25 +5,13 @@ import qbot.density as density
 import qbot.measurement as meas
 import qbot.errors as err
 import qbot.basis as basis
+import qbot.qgates as gates
 
 from typing import Callable
 
 oneOverRoot2 = 2**(-1/2)
 
-def simonsGate(numQubits, f: Callable):
-    '''
-    unitary for the blackbox function described in simon's algorithm
-    U_f: |x>|b> -> |x>|b addmod2 f(x)>
-    '''
-    size = 2**numQubits
-    arr = np.zeros((size,size), dtype = complex)
-    for i in range(size):
-        x = i // 2
-        b = i % 2
-        index = (f(x) + b)%2
-        arr[index][i] = 1
 
-    return arr
 
 
 globalNameSpace = {
@@ -31,26 +19,30 @@ globalNameSpace = {
     "ProbVal":    ProbVal.fromZipped,
 
     # common gates
-    "identity": np.eye(2),
-    "hadamard": oneOverRoot2 * np.array([
+    "identityGate": np.eye(2),
+    "hadamardGate": oneOverRoot2 * np.array([
             [1, 1],
            [1, -1]
         ],dtype = complex),
-    "pauliX": np.array([
+    "pauliXGate": np.array([
             [0, 1],
             [1, 0]
         ],dtype = complex),
-    "pauliY": np.array([
+    "pauliYGate": np.array([
             [0, -1j],
             [1j, -0]
         ],dtype = complex),
-    "pauliZ": np.array([
+    "pauliZGate": np.array([
             [1, 0],
             [0, -1]
         ],dtype = complex),
 
+    "xRotGate": lambda theta: funcWrapper(gates.genXRotGate, theta),
+    "yRotGate": lambda theta: funcWrapper(gates.genYRotGate, theta),
+    "zRotGate": lambda theta: funcWrapper(gates.genZRotGate, theta),
+
     # other gates
-    "simonsGate":    lambda numQubits, f: funcWrapper(simonsGate, numQubits, f),
+    "simonsGate":    lambda numQubits, f: funcWrapper(gates.genSimonsGate, numQubits, f),
 
     # collections (to make them behave with ProbVal better)
     "plist":         lambda *args: funcWrapper(lambda *a: list(a),  *args),
