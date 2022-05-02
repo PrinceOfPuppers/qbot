@@ -1,5 +1,5 @@
 import numpy as np
-from qbot.helpers import ensureSquare, log2
+from qbot.helpers import ensureSquare, log2, nthRootsOfUnity
 from typing import Callable
 
 
@@ -60,6 +60,19 @@ def genZRotGate(theta):
         [0,                   np.exp(theta/2)]
     ], dtype = complex)
 
+
+def genQFT(numQubits):
+    assert isinstance(numQubits, int)
+    size = 2**numQubits
+    unityDiv = nthRootsOfUnity(size) / np.sqrt(size)
+    qft = np.ones((size,size), dtype = complex)
+    for i in range(1, size):
+        for j in range(i, size):
+            index = (i*j)%size
+            qft[i][j] = unityDiv[index]
+            qft[j][i] = unityDiv[index]
+
+    return qft
 
 def genSwapGate(numQubits, q1, q2):
     if (q1 == q2):

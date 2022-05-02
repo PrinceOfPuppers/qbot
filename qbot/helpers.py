@@ -9,6 +9,9 @@ def printBits(x, numBits):
 def log2(x):
     return frexp(x)[1] - 1
 
+def nthRootsOfUnity(n):
+    return np.exp(2j * np.pi / n * np.arange(n))
+
 def boundsOverlap(min1, max1, min2, max2):
     if max1 < min1 or max2 < min2:
         raise Exception(f"Improper Bounds: min1 {min1}, max1 {max1}, min2 {min2}, max2 {max2}")

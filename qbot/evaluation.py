@@ -7,11 +7,7 @@ import qbot.errors as err
 import qbot.basis as basis
 import qbot.qgates as gates
 
-from typing import Callable
-
 oneOverRoot2 = 2**(-1/2)
-
-
 
 
 globalNameSpace = {
@@ -40,6 +36,8 @@ globalNameSpace = {
     "xRotGate": lambda theta: funcWrapper(gates.genXRotGate, theta),
     "yRotGate": lambda theta: funcWrapper(gates.genYRotGate, theta),
     "zRotGate": lambda theta: funcWrapper(gates.genZRotGate, theta),
+
+    "qftGate": gates.genQFT,
 
     # other gates
     "simonsGate":    lambda numQubits, f: funcWrapper(gates.genSimonsGate, numQubits, f),
