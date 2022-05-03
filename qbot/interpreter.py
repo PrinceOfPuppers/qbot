@@ -96,7 +96,15 @@ def disc(localNameSpace, lines, lineNum, tokens):
 
 
 def jump(localNameSpace, lines, lineNum, tokens):
-    raise NotImplementedError()
+    markName = tokens[1]
+    if not markName.isidentifier():
+        err.raiseFormattedError(err.InvalidMarkName(lines, lineNum, markName))
+    try:
+        markLineNum = localNameSpace['__marks'][markName]
+    except KeyError:
+        err.raiseFormattedError(err.UnknownMarkName(lines, lineNum, markName))
+
+    return markLineNum
 
 def cjmp(localNameSpace, lines, lineNum, tokens):
     raise NotImplementedError()
@@ -196,7 +204,11 @@ def meas(localNameSpace, lines, lineNum, tokens):
 
 
 def mark(localNameSpace, lines, lineNum, tokens):
-    raise NotImplementedError()
+    markName = tokens[1]
+    if not markName.isidentifier():
+        err.raiseFormattedError(err.InvalidMarkName(lines, lineNum, markName))
+
+    localNameSpace['__marks'][markName] = lineNum
 
 def cout(localNameSpace, lines, lineNum, tokens):
     print(evaluateWrapper(lines, lineNum, tokens[1], localNameSpace))
@@ -213,9 +225,13 @@ operations = {
     'gate': (gate, 2, 3),
     'perm': (perm, 1, 1),
     'meas': (meas, 2, 3),
-    'mark': (mark, 1, 1),
+    #'mark': (mark, 1, 1),
     'cout': (cout, 1, 1),
 }
+
+def getOp(line:str):
+    '''used when recording all marks in preprocessing step'''
+    return line.strip()[:4].lower()
 
 def processLineIntoTokens(line:str):
     tokens = []
@@ -233,7 +249,7 @@ def processLineIntoTokens(line:str):
     if not op:
         return tokens
 
-    tokens.append(op)
+    tokens.append(op.lower())
     for s in line[4:].split(';'):
         s = s.strip()
         if s:
@@ -246,8 +262,15 @@ def executeTxt(text: str):
     lines = text.splitlines()
     state = np.array([], dtype = complex)
     localNameSpace = {
-        'state': state
+        'state': state,
+        '__marks': dict()
     }
+
+    # record marks
+    for lineNum, line in enumerate(lines):
+        if getOp(line) == 'mark':
+            tokens = processLineIntoTokens(line)
+            mark(localNameSpace, lines, lineNum, tokens)
 
     lineNum = -1
     while lineNum < len(lines) - 1:
@@ -258,7 +281,7 @@ def executeTxt(text: str):
             continue
 
         tokens[0] = tokens[0].lower()
-        if tokens[0] == 'note':
+        if tokens[0] == 'note' or tokens[0] == 'mark':
             continue
 
         try:
@@ -270,5 +293,7 @@ def executeTxt(text: str):
         if numArgs < argRangeStart or numArgs > argRangeEnd:
             err.raiseFormattedError(err.NumArgumentsError(lines, lineNum, tokens[0], numArgs, argRangeStart, argRangeEnd))
 
-        op(localNameSpace, lines, lineNum, tokens)
+        newLineNum = op(localNameSpace, lines, lineNum, tokens)
+        if newLineNum is not None:
+            lineNum = newLineNum
 

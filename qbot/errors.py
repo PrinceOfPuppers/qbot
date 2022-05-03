@@ -33,6 +33,12 @@ def UnknownOperationError(lines, lineNum, op):
 def InvalidVariableName(lines, lineNum, varName):
     return formatError(lines, lineNum, "InvalidVariableName", varName)
 
+def InvalidMarkName(lines, lineNum, markName):
+    return formatError(lines, lineNum, "InvalidMarkName", markName)
+
+def UnknownMarkName(lines, lineNum, markName):
+    return formatError(lines, lineNum, "UnknownMarkName", markName)
+
 def NumArgumentsError(lines, lineNum, op, numArgsGiven, numRequiredMin, numRequiredMax = -1):
     if numRequiredMax < numRequiredMin:
         return formatError(lines, lineNum, "NumArgumentsError", f"operation {op} requires {numRequiredMin}-{numRequiredMax} arguments ({numArgsGiven} given)")
