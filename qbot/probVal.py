@@ -57,11 +57,7 @@ def funcWrapper(func, *args, **kwargs):
         probs.append(prob)
         vals.append(func(*argPermutation, **kwargPermutation))
 
-    if len(probs) == 1:
-        return vals[0]
-
-    return ProbVal(probs, vals)
-
+    return ProbVal.fromUnzipped(probs, vals)
 
 
 class ProbVal:
@@ -120,12 +116,22 @@ class ProbVal:
 
     @staticmethod
     def fromZipped(pairs:List[Tuple]):
+        if len(pairs) == 1:
+            return pairs[0][1]
+
         probs = []
         values = []
         for prob, value in pairs:
             probs.append(prob)
             values.append(value)
         return ProbVal(probs, values)
+
+    @staticmethod
+    def fromUnzipped(probs:List[float], values:list):
+        if len(values) == 1:
+            return values[0]
+        return ProbVal(probs, values)
+
     
     def toDensityMatrix(self):
         if isinstance(self.instance(), np.ndarray):
@@ -140,6 +146,9 @@ class ProbVal:
                 sum += prob*value
             return sum
         raise TypeError()
+
+    def map(self, func):
+        return ProbVal.fromUnzipped(self.probs, [func(val) for val in self.values])
     
     def typeString(self):
         inst = self.instance()
@@ -164,7 +173,7 @@ class ProbVal:
         for i, val in enumerate(self.values):
             newProbs.append(self.probs[i])
             newVals.append(unaryOp(val, *args))
-        return ProbVal(newProbs, newVals)
+        return ProbVal.fromUnzipped(newProbs, newVals)
 
     def __comparison(self, other, compareOp):
         trueProb = 0
@@ -185,7 +194,7 @@ class ProbVal:
                     trueProb += prob
                 else:
                     falseProb += prob
-        return ProbVal([trueProb, falseProb], [True, False])
+        return ProbVal.fromUnzipped([trueProb, falseProb], [True, False])
 
     def __binary(self, other, binaryOp, reversed:bool):
         newProbs = []
@@ -208,7 +217,7 @@ class ProbVal:
                 else:
                     newVals.append(binaryOp(self.values[i], other))
 
-        return ProbVal(newProbs, newVals)
+        return ProbVal.fromUnzipped(newProbs, newVals)
 
     def __str__(self):
         return "[" + ", ".join([f"({self.probs[i]} {self.values[i]})" for i in range(len(self.probs))]) + "]"

@@ -9,6 +9,8 @@ from qbot.measurement import measureArbitraryMultiState, MeasurementResult
 import qbot.errors as err
 import sys
 
+from typing import Union
+
 def convertToDensity(lines, lineNum, val):
     if isinstance(val, ProbVal):
         try:
@@ -34,6 +36,77 @@ def getVarName(lines, lineNum, token):
         err.raiseFormattedError(err.InvalidVariableName(lines, lineNum, token))
     return token
 
+def getMarkLineNum(localNameSpace, lines, lineNum, token) -> Union[int, ProbVal]:
+
+    #if isinstance(token, ProbVal):
+    if token.isidentifier() and token in localNameSpace['__marks'].keys():
+        return localNameSpace['__marks'][token]
+
+    res = evaluateWrapper(lines, lineNum, token, localNameSpace)
+    if isinstance(res, ProbVal):
+        newVals = []
+        for i in range(len(res.probs)):
+            val = res.values[i]
+            if not isinstance(val, str):
+                err.raiseFormattedError(err.customTypeError(lines, lineNum, ['str', 'ProbVal<str>'], res.typeString()))
+            try:
+                newVals.append(localNameSpace['__marks'][val])
+            except KeyError:
+                err.raiseFormattedError(err.UnknownMarkName(lines, lineNum, val))
+
+        return ProbVal.fromUnzipped(res.probs, newVals)
+
+    if isinstance(res, str):
+        try:
+            return localNameSpace['__marks'][res]
+        except KeyError:
+            err.raiseFormattedError(err.UnknownMarkName(lines, lineNum, token))
+
+    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['str', 'ProbVal<str>'], type(res)))
+
+
+def setVal(localNameSpace, lines, lineNum, key, value, qset = True):
+    if qset:
+        localNameSpace[key] = convertToDensity(lines, lineNum, value)
+        localNameSpace[f'__is_q_{key}'] = True
+    else:
+        localNameSpace[key] = value
+        localNameSpace[f'__is_q_{key}'] = False
+
+    localNameSpace[f'__updated_{key}'] = True
+
+def resetUpdates(localNameSpace):
+    for key in localNameSpace.keys():
+        if key.startswith('__updated_'):
+            localNameSpace[key] = False
+
+def collapseNamespaces(p1, oldNameSpace, p2, newNameSpace):
+    '''merges oldNameSpace into newNameSpace'''
+    # note the keys of newNameSpace are a superset of oldNameSpace (keys cannot be removed)
+
+    for key in oldNameSpace.keys():
+        if key.startswith('__'):
+            # ignore dunder 
+            continue
+
+        if not newNameSpace[f'__updated_{key}']:
+            continue
+
+        isQstr = f'__is_q_{key}'
+        if key in oldNameSpace:
+            if oldNameSpace[isQstr] and newNameSpace[isQstr]:
+                density.densityEnsambleToDensity([oldNameSpace[key], newNameSpace[key]], [p1, p2])
+                continue
+
+            newNameSpace[key] = ProbVal.fromUnzipped([p1, p2], [oldNameSpace[key], newNameSpace[key]])
+            newNameSpace[isQstr] = False
+            continue
+
+        newNameSpace[key] = ProbVa.fromUnzippedl([p1, p2], [None, newNameSpace[key]])
+        newNameSpace[isQstr] = False
+        continue
+
+
 
 
 # operations
@@ -43,7 +116,7 @@ def _qset(val, localNameSpace, lines, lineNum, numQubits, targets):
             err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', target, numQubits - 1))
 
     try:
-        localNameSpace['state'] = density.replaceArbitrary(localNameSpace['state'], val, targets)
+        setVal(localNameSpace, lines, lineNum, 'state', density.replaceArbitrary(localNameSpace['state'], val, targets), qset = True)
     except ValueError as e:
         err.raiseFormattedError(err.pythonError(lines,lineNum, e))
 
@@ -60,7 +133,8 @@ def qset(localNameSpace, lines, lineNum, tokens):
     val = convertToDensity(lines, lineNum, x)
 
     if len(tokens) == 2:
-        localNameSpace['state'] = val
+
+        setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
         return
     else:
         targets = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
@@ -80,7 +154,8 @@ def _disc(localNameSpace, lines, lineNum, numQubits, targets):
         if target < 0 or target > numQubits - 1:
             err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', target, numQubits - 1))
 
-    _, localNameSpace['state'] = density.partialTraceArbitrary(localNameSpace['state'], numQubits, targets)
+    _, val = density.partialTraceArbitrary(localNameSpace['state'], numQubits, targets)
+    setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
 
 def disc(localNameSpace, lines, lineNum, tokens):
     numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
@@ -96,17 +171,12 @@ def disc(localNameSpace, lines, lineNum, tokens):
 
 
 def jump(localNameSpace, lines, lineNum, tokens):
-    markName = tokens[1]
-    if not markName.isidentifier():
-        err.raiseFormattedError(err.InvalidMarkName(lines, lineNum, markName))
-    try:
-        markLineNum = localNameSpace['__marks'][markName]
-    except KeyError:
-        err.raiseFormattedError(err.UnknownMarkName(lines, lineNum, markName))
-
-    return markLineNum
+    return getMarkLineNum(localNameSpace, lines, lineNum, tokens[1])
 
 def cjmp(localNameSpace, lines, lineNum, tokens):
+    markLineNum = getMarkLineNum()
+
+    expr = tokens[2]
     raise NotImplementedError()
 
 def qjmp(localNameSpace, lines, lineNum, tokens):
@@ -117,7 +187,7 @@ def cdef(localNameSpace, lines, lineNum, tokens):
 
     expr = tokens[2]
     val = evaluateWrapper(lines, lineNum, expr, localNameSpace)
-    localNameSpace[varName] = val
+    setVal(localNameSpace, lines, lineNum, varName, val, qset = False)
 
 def qdef(localNameSpace, lines, lineNum, tokens):
     varName = getVarName(lines, lineNum, tokens[1])
@@ -125,6 +195,7 @@ def qdef(localNameSpace, lines, lineNum, tokens):
     expr = tokens[2]
     val = convertToDensity(lines, lineNum, evaluateWrapper(lines, lineNum, expr, localNameSpace))
     localNameSpace[varName] = val
+    setVal(localNameSpace, lines, lineNum, varName, val, qset = True)
 
 
 def gate(localNameSpace, lines, lineNum, tokens):
@@ -163,12 +234,8 @@ def gate(localNameSpace, lines, lineNum, tokens):
         except Exception as e:
             err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
 
-    localNameSpace['state'] = gates.applyGate(fullGate, localNameSpace['state'])
-
-
-
-
-    
+    val = gates.applyGate(fullGate, localNameSpace['state'])
+    setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
 
 
 
@@ -203,13 +270,6 @@ def meas(localNameSpace, lines, lineNum, tokens):
     localNameSpace[varName] = result
 
 
-def mark(localNameSpace, lines, lineNum, tokens):
-    markName = tokens[1]
-    if not markName.isidentifier():
-        err.raiseFormattedError(err.InvalidMarkName(lines, lineNum, markName))
-
-    localNameSpace['__marks'][markName] = lineNum
-
 def cout(localNameSpace, lines, lineNum, tokens):
     print(evaluateWrapper(lines, lineNum, tokens[1], localNameSpace))
 
@@ -232,6 +292,21 @@ operations = {
 def getOp(line:str):
     '''used when recording all marks in preprocessing step'''
     return line.strip()[:4].lower()
+
+def mark(localNameSpace, lines, lineNum, tokens):
+    markName = tokens[1]
+    if not markName.isidentifier():
+        err.raiseFormattedError(err.InvalidMarkName(lines, lineNum, markName))
+
+    localNameSpace['__marks'][markName] = lineNum
+
+def recordMarks(localNameSpace, lines):
+    # record marks
+    for lineNum, line in enumerate(lines):
+        if getOp(line) == 'mark':
+            tokens = processLineIntoTokens(line)
+            mark(localNameSpace, lines, lineNum, tokens)
+
 
 def processLineIntoTokens(line:str):
     tokens = []
@@ -257,23 +332,13 @@ def processLineIntoTokens(line:str):
 
     return tokens
 
+def runtime(localNameSpace, lines, lineStart = 0, lineEnd = -1):
+    '''line end is not inclusive'''
+    lineStart = max(lineStart, 0)
+    lineEnd = len(lines) if lineEnd == -1 or lineEnd > len(lines) else lineEnd
 
-def executeTxt(text: str):
-    lines = text.splitlines()
-    state = np.array([], dtype = complex)
-    localNameSpace = {
-        'state': state,
-        '__marks': dict()
-    }
-
-    # record marks
-    for lineNum, line in enumerate(lines):
-        if getOp(line) == 'mark':
-            tokens = processLineIntoTokens(line)
-            mark(localNameSpace, lines, lineNum, tokens)
-
-    lineNum = -1
-    while lineNum < len(lines) - 1:
+    lineNum = lineStart-1
+    while lineNum < lineEnd - 1:
         lineNum += 1
         tokens = processLineIntoTokens(lines[lineNum])
 
@@ -294,6 +359,26 @@ def executeTxt(text: str):
             err.raiseFormattedError(err.NumArgumentsError(lines, lineNum, tokens[0], numArgs, argRangeStart, argRangeEnd))
 
         newLineNum = op(localNameSpace, lines, lineNum, tokens)
-        if newLineNum is not None:
+        # TODO: check if probval is just a value
+        if newLineNum is None:
+            continue
+        if isinstance(newLineNum, int):
             lineNum = newLineNum
+            continue
+        if isinstance(newLineNum, ProbVal):
+            # duplicate localNameSpace and call runtime on each value
+            # combine resulting localNameSpace
+            raise NotImplementedError()
+
+def executeTxt(text: str):
+    lines = text.splitlines()
+    state = np.array([], dtype = complex)
+    localNameSpace = {
+        'state': state,
+        '__marks': dict()
+    }
+
+    recordMarks(localNameSpace, lines)
+    runtime(localNameSpace, lines)
+
 
