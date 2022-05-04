@@ -1,13 +1,11 @@
-import math
 import numpy as np
-from qbot.evaluation import evaluateWrapper, globalNameSpace
+from qbot.evaluation import evaluateWrapper
 import qbot.qgates as gates
 import qbot.density as density
 import qbot.basis as basis
 from qbot.probVal import ProbVal, funcWrapper
 from qbot.measurement import measureArbitraryMultiState, MeasurementResult
 import qbot.errors as err
-import sys
 
 from typing import Union
 
@@ -86,7 +84,6 @@ def collapseNamespaces(p1, oldNameSpace, p2, newNameSpace):
 
     for key in oldNameSpace.keys():
         if key.startswith('__'):
-            # ignore dunder 
             continue
 
         if not newNameSpace[f'__updated_{key}']:
@@ -102,10 +99,9 @@ def collapseNamespaces(p1, oldNameSpace, p2, newNameSpace):
             newNameSpace[isQstr] = False
             continue
 
-        newNameSpace[key] = ProbVa.fromUnzippedl([p1, p2], [None, newNameSpace[key]])
+        newNameSpace[key] = ProbVal.fromUnzipped([p1, p2], [None, newNameSpace[key]])
         newNameSpace[isQstr] = False
         continue
-
 
 
 
@@ -359,7 +355,7 @@ def runtime(localNameSpace, lines, lineStart = 0, lineEnd = -1):
             err.raiseFormattedError(err.NumArgumentsError(lines, lineNum, tokens[0], numArgs, argRangeStart, argRangeEnd))
 
         newLineNum = op(localNameSpace, lines, lineNum, tokens)
-        # TODO: check if probval is just a value
+        # handle jumps
         if newLineNum is None:
             continue
         if isinstance(newLineNum, int):
