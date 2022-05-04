@@ -124,13 +124,21 @@ class ProbVal:
         for prob, value in pairs:
             probs.append(prob)
             values.append(value)
-        return ProbVal(probs, values)
+
+        pv = ProbVal(probs, values)
+        if len(pv.probs) == 1:
+            return pv.values[0]
+        return pv
 
     @staticmethod
     def fromUnzipped(probs:List[float], values:list):
         if len(values) == 1:
             return values[0]
-        return ProbVal(probs, values)
+
+        pv = ProbVal(probs, values)
+        if len(pv.probs) == 1:
+            return pv.values[0]
+        return pv
 
     
     def toDensityMatrix(self):
