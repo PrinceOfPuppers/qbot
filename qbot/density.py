@@ -24,7 +24,7 @@ def tensorProd(*args):
     return x if x is not None else np.array([], dtype = complex)
 
 def tensorExp(state, n):
-    return tensorProd(n*[state])
+    return tensorProd(*n*[state])
 
 def ketToDensity(ket: np.ndarray) -> np.ndarray:
     return np.outer(ket,ket)
