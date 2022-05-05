@@ -20,7 +20,7 @@ def hilbertSpaceNumQubits(hilbertSpace):
 
 def getVarName(lines, lineNum, token):
     if not token.isidentifier():
-        err.raiseFormattedError(err.InvalidVariableName(lines, lineNum, token))
+        err.raiseFormattedError(err.customInvalidVariableName(lines, lineNum, token))
     return token
 
 
@@ -33,7 +33,7 @@ def getMarkLineNum(localNameSpace, lines, lineNum, token) -> int:
         try:
             return localNameSpace['__marks'][res]
         except KeyError:
-            err.raiseFormattedError(err.UnknownMarkName(lines, lineNum, token))
+            err.raiseFormattedError(err.customUnknownMarkName(lines, lineNum, token))
 
     err.raiseFormattedError(err.customTypeError(lines, lineNum, ['str'], type(res)))
 
@@ -139,9 +139,38 @@ def jump(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 
 
 def cjmp(localNameSpace, lines, lineNum, tokens) -> OpReturn:
-    markLineNum = getMarkLineNum()
-    expr = tokens[2]
-    raise NotImplementedError()
+    markLineNum = getMarkLineNum(localNameSpace, lines, lineNum, tokens[1])
+    cond = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
+    if isinstance(cond, ProbVal):
+        if not isinstance(cond.instance(), bool):
+            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], cond.typeString()))
+
+        if cond.values[0]:
+            trueProb = cond.probs[0]
+            falseProb = cond.probs[1]
+
+            assert not cond.values[1]
+        else:
+            trueProb = cond.probs[1]
+            falseProb = cond.probs[0]
+
+            assert not cond.values[0]
+            assert cond.values[1]
+
+        if not len(tokens) == 4:
+            err.raiseFormattedError(err.customProbValCjmpError(lines, lineNum))
+        joinLineNum = getMarkLineNum(localNameSpace, lines, lineNum, tokens[3])
+
+        jumpLineNum = ProbVal.fromUnzipped([trueProb, falseProb], [markLineNum, lineNum + 1])
+        return OpReturnVal(jumpLineNum, joinLineNum)
+
+    elif isinstance(cond, bool):
+        if cond:
+            return OpReturnVal(markLineNum)
+        return
+
+    else:
+        err.raiseFormattedError( err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], str(type(cond))) )
 
 
 def qjmp(localNameSpace, lines, lineNum, tokens) -> OpReturn:
@@ -248,8 +277,8 @@ operations = {
     'qset': (qset, 1, 2),
     'disc': (disc, 1, 1),
     'jump': (jump, 1, 1),
-    'cjmp': (cjmp, 2, 2),
-    'qjmp': (qjmp, 2, 2),
+    'cjmp': (cjmp, 2, 3),
+    #'qjmp': (qjmp, 2, 2),
     'cdef': (cdef, 2, 2),
     'qdef': (qdef, 2, 2),
     'gate': (gate, 2, 3),

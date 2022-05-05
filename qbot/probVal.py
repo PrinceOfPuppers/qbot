@@ -170,8 +170,10 @@ class ProbVal:
             return None
         inst = self.values[0]
         t = type(inst)
-        for value in range(1, len(self.values)):
-            if isinstance(value,t):
+        for i in range(1, len(self.values)):
+            value = self.values[i]
+            print(value, t, isinstance(value, t))
+            if not isinstance(value,t):
                 return None
         return inst
 

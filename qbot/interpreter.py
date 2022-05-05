@@ -73,7 +73,7 @@ def getOp(line:str):
 def mark(localNameSpace, lines, lineNum, tokens):
     markName = tokens[1]
     if not markName.isidentifier():
-        err.raiseFormattedError(err.InvalidMarkName(lines, lineNum, markName))
+        err.raiseFormattedError(err.customInvalidMarkName(lines, lineNum, markName))
 
     localNameSpace['__marks'][markName] = lineNum
 
@@ -129,11 +129,11 @@ def runtime(localNameSpace, lines, startLine = 0, endLine = -1):
         try:
             op, argRangeStart, argRangeEnd = operations[tokens[0]]
         except KeyError:
-            err.raiseFormattedError(err.UnknownOperationError(lines, lineNum, tokens[0]))
+            err.raiseFormattedError(err.customUnknownOperationError(lines, lineNum, tokens[0]))
 
         numArgs = len(tokens) - 1
         if numArgs < argRangeStart or numArgs > argRangeEnd:
-            err.raiseFormattedError(err.NumArgumentsError(lines, lineNum, tokens[0], numArgs, argRangeStart, argRangeEnd))
+            err.raiseFormattedError(err.customNumArgumentsError(lines, lineNum, tokens[0], numArgs, argRangeStart, argRangeEnd))
 
         ret:OpReturn = op(localNameSpace, lines, lineNum, tokens)
         # handle jumps
