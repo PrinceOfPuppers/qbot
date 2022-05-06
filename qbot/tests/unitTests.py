@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import qbot.qgates as gates
 from qbot.evaluation import globalNameSpace
+from qbot.interpreter import executeTxt
 import qbot.density as density
 import qbot.basis as basis
 
@@ -50,7 +51,7 @@ class testGates(unittest.TestCase):
 
     def test_conditionalCreation(self):
 
-        createdCnot = gates.genControlledGate(2,0,1,globalNameSpace['pauliX'])
+        createdCnot = gates.genControlledGate(2,0,1,globalNameSpace['pauliXGate'])
         
         areEqual = np.array_equal(cnot,createdCnot)
 
@@ -60,8 +61,8 @@ class testGates(unittest.TestCase):
     def test_swapCnotHadamard(self):
         # test exploits the fact a cnot with the target and control swapped is the same as the cnot 
         # in the hadamard transformed basis        
-        createdCnot = gates.genControlledGate(2,0,1,globalNameSpace['pauliX'])
-        H2 = np.kron(globalNameSpace['hadamard'],globalNameSpace['hadamard'])
+        createdCnot = gates.genControlledGate(2,0,1,globalNameSpace['pauliXGate'])
+        H2 = density.tensorExp(globalNameSpace['hadamardGate'],2)
         
         createdCnotHadamardBasis = H2 @ createdCnot @ H2
         
@@ -122,7 +123,7 @@ class testGates(unittest.TestCase):
         self.assertTrue(np.array_equal(swaps,shiftDown))
 
     def test_toffoli(self):
-        createdCnot = gates.genControlledGate(2,0,1,globalNameSpace['pauliX'])
+        createdCnot = gates.genControlledGate(2,0,1,globalNameSpace['pauliXGate'])
 
         createdToffoli = gates.genControlledGate(3,0,1,createdCnot)
 
@@ -131,13 +132,13 @@ class testGates(unittest.TestCase):
         self.assertTrue(areEqual)
     
     def test_toffoli_genMultiControledGate(self):
-        createdToffoli = gates.genMultiControlledGate(3,[0,1],2,globalNameSpace['pauliX'])
+        createdToffoli = gates.genMultiControlledGate(3,[0,1],2,globalNameSpace['pauliXGate'])
         areEqual = np.array_equal(toffoli,createdToffoli)
 
         self.assertTrue(areEqual)
 
     def test_upsideDownToffoli(self):
-        createdCnot = gates.genControlledGate(2,1,0,globalNameSpace['pauliX'])
+        createdCnot = gates.genControlledGate(2,1,0,globalNameSpace['pauliXGate'])
 
         upsideDownToffoli = gates.genControlledGate(3,2,0,createdCnot)
 
@@ -145,7 +146,7 @@ class testGates(unittest.TestCase):
         
         createdToffoli = swap @ upsideDownToffoli @ swap
         #generate another upsidedown toffoli using genMultiControlledGate
-        multiToffoli = gates.genMultiControlledGate(3,[1,2],0,globalNameSpace['pauliX'])
+        multiToffoli = gates.genMultiControlledGate(3,[1,2],0,globalNameSpace['pauliXGate'])
         multiToffoli = swap @ multiToffoli @ swap
 
         areEqual = np.array_equal(toffoli,createdToffoli) and np.array_equal(toffoli,multiToffoli)
@@ -230,6 +231,126 @@ class testPartialTrace(unittest.TestCase):
         solution = density.normalizeDensity(density.tensorProd(comp0, bell00))
 
         self.assertTrue(np.array_equal(state, solution))
+
+class testCircuits(unittest.TestCase):
+    def test_gate(self):
+        localNameSpace = executeTxt(
+            '''
+
+            qset computation.density[0]
+            gate hadamardGate ; 0
+            '''
+        )
+        self.assertTrue(np.array_equal(localNameSpace['state'], globalNameSpace['hadamard'].density[0]))
+
+    def test_controlledGate1(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorExp(computation.density[0], 2)
+            gate hadamardGate ; 0 ; [1]
+            '''
+        )
+        expectedState = density.tensorExp(globalNameSpace['computation'].density[0], 2)
+        self.assertTrue(np.array_equal(localNameSpace['state'], expectedState))
+
+    def test_controlledGate2(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorPermute(2, 1, computation)
+            gate hadamardGate ; 0 ; [1]
+            '''
+        )
+        expectedState = density.tensorProd(globalNameSpace['hadamard'].density[0], globalNameSpace['computation'].density[1])
+        self.assertTrue(np.array_equal(localNameSpace['state'], expectedState))
+
+    def test_largerGate(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(hada[0], hada[0])
+            gate tensorProd(identityGate, hadamardGate) ; 0
+            '''
+        )
+
+        expectedState = density.tensorProd(globalNameSpace['hada'][0], globalNameSpace['comp'][0])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_gateProbVals1(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(comp[0], comp[0])
+            gate ProbValZipped( [(0.5, tensorProd(identityGate, hadamardGate)), (0.5, tensorProd(hadamardGate, identityGate))] ) ; 0
+            '''
+        )
+        comp0 = globalNameSpace['computation'][0]
+        hadaPlus = globalNameSpace['hadamard'][0]
+        expectedState = density.densityEnsambleToDensity([0.5, 0.5], [
+            density.tensorProd(hadaPlus, comp0),
+            density.tensorProd(comp0, hadaPlus)
+        ])
+
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_gateProbVals2(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorPermute(3, 1, comp)
+            gate hadamardGate ; ProbValZipped([(0.5, 0), (0.5, 1)]) ; [2]
+            '''
+        )
+        comp0 = globalNameSpace['computation'][0]
+        comp1 = globalNameSpace['computation'][1]
+        hadaPlus = globalNameSpace['hadamard'][0]
+        expectedState = density.densityEnsambleToDensity([0.5, 0.5], [
+            density.tensorProd(hadaPlus, comp0, comp1),
+            density.tensorProd(comp0, hadaPlus, comp1)
+        ])
+
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+
+    def test_discVal(self):
+        localNameSpace = executeTxt(
+            '''
+
+            qset tensorExp(comp[0], 2)
+            gate hadamardGate ; 0
+            disc [1]
+            '''
+        )
+        self.assertTrue(np.array_equal(localNameSpace['state'], globalNameSpace['hadamard'].density[0]))
+
+    def test_discProbVal(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorExp(comp[0], 2)
+            gate hadamardGate ; 0
+            disc ProbValZipped([(0.5, [1]), (0.5, [0])])
+            '''
+        )
+        expectedState = density.densityEnsambleToDensity([0.5, 0.5], [globalNameSpace['hadamard'].density[0], globalNameSpace['computation'].density[0]])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_qset1(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorExp(comp[0], 3)
+            qset hada[0] ; [1]
+            '''
+        )
+        expectedState = density.tensorProd(basis.computation[0], basis.hadamard[0], basis.computation[0])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_qset2(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorExp(comp[0], 3)
+            qset hada[0] ; ProbVal([0.5, 0.5], [[1], [2]])
+            '''
+        )
+        s1 = density.tensorProd(basis.computation[0], basis.hadamard[0], basis.computation[0])
+        s2 = density.tensorProd(basis.computation[0], basis.computation[0], basis.hadamard[0])
+        expectedState = density.densityEnsambleToDensity([0.5, 0.5], [s1, s2])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
 
 #class testMeasurement(unittest.TestCase):
 #    def test_computationComputation1(self):

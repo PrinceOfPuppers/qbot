@@ -1,0 +1,297 @@
+import numpy as np
+
+import qbot.basis as basis
+from qbot.probVal import ProbVal, funcWrapper
+from qbot.evaluation import evaluateWrapper
+from qbot.measurement import measureArbitraryMultiState, MeasurementResult
+import qbot.density as density
+import qbot.qgates as gates
+import qbot.errors as err
+
+from typing import Union
+
+
+
+def hilbertSpaceNumQubits(hilbertSpace):
+    if len(hilbertSpace.shape) == 0 or hilbertSpace.size == 0:
+        return 0
+    return int(np.log2(hilbertSpace.shape[0]))
+
+
+def getVarName(lines, lineNum, token):
+    if not token.isidentifier():
+        err.raiseFormattedError(err.customInvalidVariableName(lines, lineNum, token))
+    return token
+
+
+def getMarkLineNum(localNameSpace, lines, lineNum, token) -> int:
+    if token.isidentifier() and token in localNameSpace['__marks'].keys():
+        return localNameSpace['__marks'][token]
+
+    res = evaluateWrapper(lines, lineNum, token, localNameSpace)
+    if isinstance(res, str):
+        try:
+            return localNameSpace['__marks'][res]
+        except KeyError:
+            err.raiseFormattedError(err.customUnknownMarkName(lines, lineNum, token))
+
+    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['str'], type(res)))
+
+
+def convertToDensity(lines, lineNum, val):
+    if isinstance(val, ProbVal):
+        try:
+            return val.toDensityMatrix()
+        except:
+            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], val.typeString()))
+
+    if not isinstance(val, np.ndarray):
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], type(val)))
+
+    if len(val.shape) == 1:
+        np.outer(val, val)
+    return val
+
+
+def setVal(localNameSpace, lines, lineNum, key, value, qset = True):
+    if qset:
+        localNameSpace[key] = convertToDensity(lines, lineNum, value)
+        localNameSpace[f'__is_q_{key}'] = True
+    else:
+        localNameSpace[key] = value
+        localNameSpace[f'__is_q_{key}'] = False
+
+    localNameSpace[f'__updated_{key}'] = True
+
+
+
+# operations
+class OpReturnVal:
+    jumpLineNum: Union[int, ProbVal]
+    joinLineNum: Union[int, None]
+    def __init__(self, jumpLineNum, joinLineNum = None):
+        self.jumpLineNum = jumpLineNum
+        self.joinLineNum = joinLineNum
+
+OpReturn = Union[OpReturnVal, None]
+
+
+def _qset(val, localNameSpace, lines, lineNum, numQubits, targets):
+    for target in targets:
+        if target < 0 or target > numQubits - 1:
+            err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', target, numQubits - 1))
+
+    try:
+        return density.replaceArbitrary(localNameSpace['state'], val, targets)
+    except ValueError as e:
+        err.raiseFormattedError(err.pythonError(lines,lineNum, e))
+
+def qset(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+
+    '''sets current hilbertspace (or some subspace of it) to a specific value'''
+    numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
+
+    expr:str = tokens[1]
+
+    x = evaluateWrapper(lines, lineNum, expr, localNameSpace)
+    val = convertToDensity(lines, lineNum, x)
+
+    if len(tokens) == 2:
+        setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
+        return
+    else:
+        targets = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
+
+        if isinstance(targets, ProbVal):
+            density = funcWrapper(_qset, val, localNameSpace, lines, lineNum, numQubits, targets).toDensityMatrix()
+            setVal(localNameSpace, lines, lineNum, 'state', density, qset = True)
+            return
+
+        if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
+            density = _qset(val, localNameSpace, lines, lineNum, numQubits, targets)
+            setVal(localNameSpace, lines, lineNum, 'state', density, qset = True)
+            return
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(targets))))
+
+
+def _disc(localNameSpace, lines, lineNum, numQubits, targets):
+    for target in targets:
+        if target < 0 or target > numQubits - 1:
+            err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', target, numQubits - 1))
+
+    _, val = density.partialTraceArbitrary(localNameSpace['state'], numQubits, targets)
+    return val 
+
+def disc(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
+
+    targets = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
+    if isinstance(targets, ProbVal):
+        targetInst = targets.instance()
+        if isinstance(targetInst, list) or isinstance(targetInst, tuple) or isinstance(targetInst, set):
+            val = funcWrapper(_disc, localNameSpace, lines, lineNum, numQubits, targets)
+            setVal(localNameSpace, lines, lineNum, 'state', convertToDensity(lines, lineNum, val), qset = True)
+            return
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], targets.typeString()))
+
+    if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
+        val = _disc(localNameSpace, lines, lineNum, numQubits, targets)
+        setVal(localNameSpace, lines, lineNum, 'state', convertToDensity(lines, lineNum, val), qset = True)
+        return
+    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(targets))))
+
+
+def jump(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    return OpReturnVal(getMarkLineNum(localNameSpace, lines, lineNum, tokens[1]))
+
+
+def cjmp(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    markLineNum = getMarkLineNum(localNameSpace, lines, lineNum, tokens[1])
+    cond = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
+    if isinstance(cond, ProbVal):
+        if not isinstance(cond.instance(), bool):
+            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], cond.typeString()))
+
+        if cond.values[0]:
+            trueProb = cond.probs[0]
+            falseProb = cond.probs[1]
+
+            assert not cond.values[1]
+        else:
+            trueProb = cond.probs[1]
+            falseProb = cond.probs[0]
+
+            assert not cond.values[0]
+            assert cond.values[1]
+
+        if not len(tokens) == 4:
+            err.raiseFormattedError(err.customProbValCjmpError(lines, lineNum))
+        joinLineNum = getMarkLineNum(localNameSpace, lines, lineNum, tokens[3])
+
+        jumpLineNum = ProbVal.fromUnzipped([trueProb, falseProb], [markLineNum, lineNum + 1])
+        return OpReturnVal(jumpLineNum, joinLineNum)
+
+    elif isinstance(cond, bool):
+        if cond:
+            return OpReturnVal(markLineNum)
+        return
+
+    else:
+        err.raiseFormattedError( err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], str(type(cond))) )
+
+
+def qjmp(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    raise NotImplementedError()
+
+
+def cdef(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    varName = getVarName(lines, lineNum, tokens[1])
+
+    expr = tokens[2]
+    val = evaluateWrapper(lines, lineNum, expr, localNameSpace)
+    setVal(localNameSpace, lines, lineNum, varName, val, qset = False)
+
+
+def qdef(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    varName = getVarName(lines, lineNum, tokens[1])
+
+    expr = tokens[2]
+    val = convertToDensity(lines, lineNum, evaluateWrapper(lines, lineNum, expr, localNameSpace))
+    localNameSpace[varName] = val
+    setVal(localNameSpace, lines, lineNum, varName, val, qset = True)
+
+
+def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
+
+    gate = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
+    firstTarget = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
+
+    if not (isinstance(firstTarget, ProbVal) or isinstance(firstTarget, int)):
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['int'], str(type(firstTarget))))
+
+    # no controls
+    if len(tokens) < 4:
+        try:
+            g = funcWrapper( gates.genGateForFullHilbertSpace, numQubits, firstTarget, gate )
+
+        except Exception as e:
+            err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
+
+    # controls
+    else: 
+        controls = evaluateWrapper(lines, lineNum, tokens[3], localNameSpace)
+        # TODO ensure controls and targets dont overlap
+        if not (isinstance(controls, ProbVal) or isinstance(controls, list) or isinstance(controls, tuple) or isinstance(controls, set)):
+            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(firstTarget))))
+
+        try:
+            g = funcWrapper( gates.genMultiControlledGate, numQubits, controls, firstTarget, gate )
+        except Exception as e:
+            err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
+
+    if isinstance(g, ProbVal):
+        for i in range(len(g.values)):
+            g.values[i] = gates.applyGate(g.values[i], localNameSpace['state'])
+        val = g.toDensityMatrix()
+    elif isinstance(g, np.ndarray):
+        val = gates.applyGate(g, localNameSpace['state'])
+    else:
+        raise Exception("gate is not array or ProbVal")
+
+    setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
+
+
+
+def perm(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    raise NotImplementedError()
+
+
+def meas(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    varName = getVarName(lines, lineNum, tokens[1])
+
+    b = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
+    # TODO allow for probval basis
+    if not isinstance(b, basis.Basis):
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['Basis'], str(type(b))))
+
+    try:
+        if len(tokens) < 4:
+            result = measureArbitraryMultiState(localNameSpace['state'], b)
+        else:
+            targets = evaluateWrapper(lines, lineNum, tokens[3], localNameSpace)
+            if isinstance(targets, list):
+                result = measureArbitraryMultiState(localNameSpace['state'], b, targets)
+            elif isinstance(targets, ProbVal):
+                result = funcWrapper(measureArbitraryMultiState, localNameSpace['state'], b, targets)
+            else:
+                err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list<int>', 'ProbVal<list<int>>'], str(type(b))))
+    except Exception as e:
+        err.raiseFormattedError(err.pythonError(lines, lineNum, e))
+
+    if isinstance(result, ProbVal):
+        result = MeasurementResult.fromProbVal(result)
+
+    localNameSpace[varName] = result
+
+
+def cout(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    print(evaluateWrapper(lines, lineNum, tokens[1], localNameSpace))
+
+
+
+# "op_name: (func, arg_range_start, arg_range_end),
+operations = {
+    'qset': (qset, 1, 2),
+    'disc': (disc, 1, 1),
+    'jump': (jump, 1, 1),
+    'cjmp': (cjmp, 2, 3),
+    #'qjmp': (qjmp, 2, 2),
+    'cdef': (cdef, 2, 2),
+    'qdef': (qdef, 2, 2),
+    'gate': (gate, 2, 3),
+    'perm': (perm, 1, 1),
+    'meas': (meas, 2, 3),
+    #'mark': (mark, 1, 1),
+    'cout': (cout, 1, 1),
+}

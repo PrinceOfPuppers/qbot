@@ -12,7 +12,8 @@ oneOverRoot2 = 2**(-1/2)
 
 globalNameSpace = {
     '__builtins__': {},
-    "ProbVal":    ProbVal.fromZipped,
+    "ProbVal":          ProbVal.fromUnzipped,
+    "ProbValZipped":    ProbVal.fromZipped,
 
     # common gates
     "identityGate": np.eye(2),

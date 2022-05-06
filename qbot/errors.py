@@ -27,19 +27,23 @@ def raiseFormattedError(error:str):
     print(error)
     sys.exit()
 
-def UnknownOperationError(lines, lineNum, op):
+def customUnknownOperationError(lines, lineNum, op):
     return formatError(lines, lineNum, "UnknownOperation", op)
 
-def InvalidVariableName(lines, lineNum, varName):
+def customInvalidVariableName(lines, lineNum, varName):
     return formatError(lines, lineNum, "InvalidVariableName", varName)
 
-def InvalidMarkName(lines, lineNum, markName):
+def customInvalidMarkName(lines, lineNum, markName):
     return formatError(lines, lineNum, "InvalidMarkName", markName)
 
-def UnknownMarkName(lines, lineNum, markName):
+def customUnknownMarkName(lines, lineNum, markName):
     return formatError(lines, lineNum, "UnknownMarkName", markName)
 
-def NumArgumentsError(lines, lineNum, op, numArgsGiven, numRequiredMin, numRequiredMax = -1):
+def customProbValCjmpError(lines, lineNum):
+    return formatError(lines, lineNum, "ProbValCjmpError", "cjmp with a ProbVal condition requires a join mark (3rd argument) where both condition branches will be merged")
+
+
+def customNumArgumentsError(lines, lineNum, op, numArgsGiven, numRequiredMin, numRequiredMax = -1):
     if numRequiredMax < numRequiredMin:
         return formatError(lines, lineNum, "NumArgumentsError", f"operation {op} requires {numRequiredMin}-{numRequiredMax} arguments ({numArgsGiven} given)")
     return formatError(lines, lineNum, "NumArgumentsError", f"operation {op} requires {numRequiredMin} argument(s) ({numArgsGiven} given)")
@@ -55,7 +59,7 @@ def customTypeError(lines, lineNum, expectedTypes:list[str], gotType:str):
 
     return formatError(lines, lineNum, "TypeError", f"{gotType} cannot be interpreted as {expectedTypeStr}")
 
-def SizeError(lines, lineNum, str):
+def customSizeError(lines, lineNum, str):
     return formatError(lines, lineNum, "SizeError", str)
 
 def pythonError(lines, lineNum, e: Exception):

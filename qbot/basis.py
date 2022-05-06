@@ -24,6 +24,8 @@ class Basis:
             self.density.append(
                 ketsToDensity([ket])
             )
+    def __getitem__(self, i):
+        return self.density[i]
 
 computation = Basis(
     ['comp', 'computation', 'computational', 'compBasis', 'computationBasis', 'computationalBasis'],

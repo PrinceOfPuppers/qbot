@@ -1,237 +1,89 @@
-import math
 import numpy as np
-from qbot.evaluation import evaluateWrapper, globalNameSpace
-import qbot.qgates as gates
 import qbot.density as density
-import qbot.basis as basis
-from qbot.probVal import ProbVal, funcWrapper
-from qbot.measurement import measureArbitraryMultiState, MeasurementResult
+from qbot.probVal import ProbVal
 import qbot.errors as err
-import sys
+from qbot.operators import operations, OpReturn
 
-def convertToDensity(lines, lineNum, val):
-    if isinstance(val, ProbVal):
-        try:
-            return val.toDensityMatrix()
-        except:
-            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], val.typeString()))
+def resetUpdates(localNameSpace):
+    for key in localNameSpace.keys():
+        if key.startswith('__updated_'):
+            localNameSpace[key] = False
 
-    if not isinstance(val, np.ndarray):
-        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], type(val)))
+def collapseNamespaces(p1, n1, p2, n2) -> dict:
+    '''merges n1 changes into n2 and returns n2'''
+    # note the keys of newNameSpace are a superset of oldNameSpace (keys cannot be removed)
 
-    if len(val.shape) == 1:
-        np.outer(val, val)
-    return val
+    for n1Key in n1.keys():
+        if n1Key.startswith('__'):
+            continue
 
+        isUpdatedStr = f'__updated_{n1Key}'
+        if not n1[isUpdatedStr]:
+            continue
 
-def hilbertSpaceNumQubits(hilbertSpace):
-    if len(hilbertSpace.shape) == 0 or hilbertSpace.size == 0:
-        return 0
-    return int(np.log2(hilbertSpace.shape[0]))
-
-def getVarName(lines, lineNum, token):
-    if not token.isidentifier():
-        err.raiseFormattedError(err.InvalidVariableName(lines, lineNum, token))
-    return token
+        
+        isQstr = f'__is_q_{n1Key}'
 
 
+        # value will be handled
+        n2[isUpdatedStr] = False
 
-# operations
-def _qset(val, localNameSpace, lines, lineNum, numQubits, targets):
-    for target in targets:
-        if target < 0 or target > numQubits - 1:
-            err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', target, numQubits - 1))
+        if n1Key in n2:
+            # either existing key or key was added in both branches since split
+            if n1[isQstr] and n2[isQstr]:
+                density.densityEnsambleToDensity([p1, p2], [n1[n1Key], n2[n1Key]])
+                continue
 
-    try:
-        localNameSpace['state'] = density.replaceArbitrary(localNameSpace['state'], val, targets)
-    except ValueError as e:
-        err.raiseFormattedError(err.pythonError(lines,lineNum, e))
+            n2[n1Key] = ProbVal.fromUnzipped([p1, p2], [n1[n1Key], n2[n1Key]])
+            n2[isQstr] = False
+            continue
 
+        # key was added in n1 branch, does not exist in n2
+        n2[n1Key] = ProbVal.fromUnzipped([p1, p2], [n1[n1Key], None])
+        n2[isQstr] = False
+        continue
 
+    # we must now handle keys which where updated/added exclusivly in n2's branch
+    for n2Key in n2.keys():
+        if n2Key.startswith('__'):
+            continue
 
-def qset(localNameSpace, lines, lineNum, tokens):
+        isUpdatedStr = f'__updated_{n2Key}'
 
-    '''sets current hilbertspace (or some subspace of it) to a specific value'''
-    numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
+        # skip all keys not updated on n2's branch, or handled by first loop
+        if not n2[isUpdatedStr]:
+            continue
 
-    expr:str = tokens[1]
+        # value will be handled
+        n2[isUpdatedStr] = False
 
-    x = evaluateWrapper(lines, lineNum, expr, localNameSpace)
-    val = convertToDensity(lines, lineNum, x)
+        # key was added in n2 branch, does not exist in n1
+        n2[n2Key] = ProbVal.fromUnzipped([p1, p2], [None, n2[n2Key]])
+        n2[isQstr] = False
 
-    if len(tokens) == 2:
-        localNameSpace['state'] = val
-        return
-    else:
-        targets = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
-
-        if isinstance(targets, ProbVal):
-            funcWrapper(_qset, localNameSpace['state'], localNameSpace, lines, lineNum, numQubits, targets)
-            return
-
-        if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
-            _qset(val, localNameSpace, lines, lineNum, numQubits, targets)
-            return
-        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(targets))))
-
-
-def _disc(localNameSpace, lines, lineNum, numQubits, targets):
-    for target in targets:
-        if target < 0 or target > numQubits - 1:
-            err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', target, numQubits - 1))
-
-    _, localNameSpace['state'] = density.partialTraceArbitrary(localNameSpace['state'], numQubits, targets)
-
-def disc(localNameSpace, lines, lineNum, tokens):
-    numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
-
-    targets = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
-    if isinstance(targets, ProbVal):
-        funcWrapper(_disc, localNameSpace['state'], localNameSpace, lines, lineNum, numQubits, targets)
-        return
-    if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
-        _disc(localNameSpace, lines, lineNum, numQubits, targets)
-        return
-    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(targets))))
-
-
-def jump(localNameSpace, lines, lineNum, tokens):
-    markName = tokens[1]
-    if not markName.isidentifier():
-        err.raiseFormattedError(err.InvalidMarkName(lines, lineNum, markName))
-    try:
-        markLineNum = localNameSpace['__marks'][markName]
-    except KeyError:
-        err.raiseFormattedError(err.UnknownMarkName(lines, lineNum, markName))
-
-    return markLineNum
-
-def cjmp(localNameSpace, lines, lineNum, tokens):
-    raise NotImplementedError()
-
-def qjmp(localNameSpace, lines, lineNum, tokens):
-    raise NotImplementedError()
-
-def cdef(localNameSpace, lines, lineNum, tokens):
-    varName = getVarName(lines, lineNum, tokens[1])
-
-    expr = tokens[2]
-    val = evaluateWrapper(lines, lineNum, expr, localNameSpace)
-    localNameSpace[varName] = val
-
-def qdef(localNameSpace, lines, lineNum, tokens):
-    varName = getVarName(lines, lineNum, tokens[1])
-
-    expr = tokens[2]
-    val = convertToDensity(lines, lineNum, evaluateWrapper(lines, lineNum, expr, localNameSpace))
-    localNameSpace[varName] = val
-
-
-def gate(localNameSpace, lines, lineNum, tokens):
-    numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
-
-    gate = convertToDensity(lines, lineNum, evaluateWrapper(lines, lineNum, tokens[1], localNameSpace))
-    firstTarget = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
-
-    if not (isinstance(firstTarget, ProbVal) or isinstance(firstTarget, int)):
-        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['int'], str(type(firstTarget))))
-
-    # no controls
-    if len(tokens) < 4:
-        try:
-            fullGate = convertToDensity(
-                    lines, lineNum, 
-                    funcWrapper( gates.genGateForFullHilbertSpace, numQubits, firstTarget, gate )
-                )
-
-        except Exception as e:
-            err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
-
-    # controls
-    else: 
-        controls = evaluateWrapper(lines, lineNum, tokens[3], localNameSpace)
-        # TODO ensure controls and targets dont overlap
-        if not (isinstance(controls, ProbVal) or isinstance(controls, list) or isinstance(controls, tuple) or isinstance(controls, set)):
-            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(firstTarget))))
-
-        try:
-            fullGate = convertToDensity(
-                    lines, lineNum, 
-                    funcWrapper( gates.genMultiControlledGate, numQubits, controls, firstTarget, gate )
-                )
-
-        except Exception as e:
-            err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
-
-    localNameSpace['state'] = gates.applyGate(fullGate, localNameSpace['state'])
+    return n2
 
 
 
-
-    
-
-
-
-def perm(localNameSpace, lines, lineNum, tokens):
-    raise NotImplementedError()
-
-def meas(localNameSpace, lines, lineNum, tokens):
-    varName = getVarName(lines, lineNum, tokens[1])
-
-    b = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
-    # TODO allow for probval basis
-    if not isinstance(b, basis.Basis):
-        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['Basis'], str(type(b))))
-
-    try:
-        if len(tokens) < 4:
-            result = measureArbitraryMultiState(localNameSpace['state'], b)
-        else:
-            targets = evaluateWrapper(lines, lineNum, tokens[3], localNameSpace)
-            if isinstance(targets, list):
-                result = measureArbitraryMultiState(localNameSpace['state'], b, targets)
-            elif isinstance(targets, ProbVal):
-                result = funcWrapper(measureArbitraryMultiState, localNameSpace['state'], b, targets)
-            else:
-                err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list<int>', 'ProbVal<list<int>>'], str(type(b))))
-    except Exception as e:
-        err.raiseFormattedError(err.pythonError(lines, lineNum, e))
-
-    if isinstance(result, ProbVal):
-        result = MeasurementResult.fromProbVal(result)
-
-    localNameSpace[varName] = result
-
-
-def mark(localNameSpace, lines, lineNum, tokens):
-    markName = tokens[1]
-    if not markName.isidentifier():
-        err.raiseFormattedError(err.InvalidMarkName(lines, lineNum, markName))
-
-    localNameSpace['__marks'][markName] = lineNum
-
-def cout(localNameSpace, lines, lineNum, tokens):
-    print(evaluateWrapper(lines, lineNum, tokens[1], localNameSpace))
-
-# "op_name: (func, arg_range_start, arg_range_end),
-operations = {
-    'qset': (qset, 1, 2),
-    'disc': (disc, 1, 1),
-    'jump': (jump, 1, 1),
-    'cjmp': (cjmp, 2, 2),
-    'qjmp': (qjmp, 2, 2),
-    'cdef': (cdef, 2, 2),
-    'qdef': (qdef, 2, 2),
-    'gate': (gate, 2, 3),
-    'perm': (perm, 1, 1),
-    'meas': (meas, 2, 3),
-    #'mark': (mark, 1, 1),
-    'cout': (cout, 1, 1),
-}
 
 def getOp(line:str):
     '''used when recording all marks in preprocessing step'''
     return line.strip()[:4].lower()
+
+def mark(localNameSpace, lines, lineNum, tokens):
+    markName = tokens[1]
+    if not markName.isidentifier():
+        err.raiseFormattedError(err.customInvalidMarkName(lines, lineNum, markName))
+
+    localNameSpace['__marks'][markName] = lineNum
+
+def recordMarks(localNameSpace, lines):
+    # record marks
+    for lineNum, line in enumerate(lines):
+        if getOp(line) == 'mark':
+            tokens = processLineIntoTokens(line)
+            mark(localNameSpace, lines, lineNum, tokens)
+
 
 def processLineIntoTokens(line:str):
     tokens = []
@@ -257,23 +109,13 @@ def processLineIntoTokens(line:str):
 
     return tokens
 
+def runtime(localNameSpace, lines, startLine = 0, endLine = -1):
+    '''line end is not inclusive'''
+    startLine = max(startLine, 0)
+    endLine = len(lines) if endLine == -1 or endLine > len(lines) else endLine
 
-def executeTxt(text: str):
-    lines = text.splitlines()
-    state = np.array([], dtype = complex)
-    localNameSpace = {
-        'state': state,
-        '__marks': dict()
-    }
-
-    # record marks
-    for lineNum, line in enumerate(lines):
-        if getOp(line) == 'mark':
-            tokens = processLineIntoTokens(line)
-            mark(localNameSpace, lines, lineNum, tokens)
-
-    lineNum = -1
-    while lineNum < len(lines) - 1:
+    lineNum = startLine-1
+    while lineNum != endLine - 1 and lineNum < len(lines) - 1:
         lineNum += 1
         tokens = processLineIntoTokens(lines[lineNum])
 
@@ -287,13 +129,68 @@ def executeTxt(text: str):
         try:
             op, argRangeStart, argRangeEnd = operations[tokens[0]]
         except KeyError:
-            err.raiseFormattedError(err.UnknownOperationError(lines, lineNum, tokens[0]))
+            err.raiseFormattedError(err.customUnknownOperationError(lines, lineNum, tokens[0]))
 
         numArgs = len(tokens) - 1
         if numArgs < argRangeStart or numArgs > argRangeEnd:
-            err.raiseFormattedError(err.NumArgumentsError(lines, lineNum, tokens[0], numArgs, argRangeStart, argRangeEnd))
+            err.raiseFormattedError(err.customNumArgumentsError(lines, lineNum, tokens[0], numArgs, argRangeStart, argRangeEnd))
 
-        newLineNum = op(localNameSpace, lines, lineNum, tokens)
-        if newLineNum is not None:
-            lineNum = newLineNum
+        ret:OpReturn = op(localNameSpace, lines, lineNum, tokens)
+        # handle jumps
+        if ret is None:
+            continue
+        if isinstance(ret.jumpLineNum, int):
+            lineNum = ret.jumpLineNum - 1
+            continue
+        if isinstance(ret.jumpLineNum, ProbVal):
+            assert ret.joinLineNum is not None
+            assert len(ret.jumpLineNum.probs) == 2
+            # duplicate localNameSpace and call runtime on each value
+            branch1Line = ret.jumpLineNum.values[0]
+            branch2Line = ret.jumpLineNum.values[1]
+
+            branch1Prob = ret.jumpLineNum.probs[0]
+            branch2Prob = ret.jumpLineNum.probs[1]
+
+            joinLine = ret.joinLineNum
+
+            print(f">>> ProbVal jump condition encountered: \n" \
+                  f"branch 1:\n" \
+                  f"    prob: {branch1Prob} ({branch1Prob*100}%)\n" \
+                  f"    line: {branch1Line}\n" \
+                  f"branch 2:\n" \
+                  f"    prob: {branch2Prob} ({branch2Prob*100}%)\n" \
+                  f"    line: {branch2Line}")
+
+
+            resetUpdates(localNameSpace)
+
+            print(f">>> taking branch 1")
+            newLocalNameSpace = localNameSpace.copy()
+            runtime(newLocalNameSpace, lines, branch1Line, joinLine + 1)
+
+            print(f">>> taking branch 2")
+            runtime(localNameSpace, lines, branch2Line, joinLine + 1)
+            print(f">>> branches met on line {branch2Line}, merging them")
+
+            localNameSpace = collapseNamespaces(branch1Prob, newLocalNameSpace, branch2Prob, localNameSpace)
+
+            lineNum = branch2Line - 1
+            continue
+
+def executeTxt(text: str):
+    lines = text.splitlines()
+    state = np.array([], dtype = complex)
+    localNameSpace = {
+        'state': state,
+        f'__updated_state': False,
+        '__marks': dict()
+
+    }
+
+    recordMarks(localNameSpace, lines)
+    runtime(localNameSpace, lines)
+
+    return localNameSpace
+
 

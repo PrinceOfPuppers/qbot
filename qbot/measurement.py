@@ -27,7 +27,7 @@ class MeasurementResult:
         return s
 
     def toDensity(self):
-        return densityEnsambleToDensity(self.basisDensity, self.probs)
+        return densityEnsambleToDensity(self.probs, self.basisDensity)
 
     @staticmethod
     def fromProbVal(pv: ProbVal):
@@ -50,7 +50,7 @@ class MeasurementResult:
             newProbs[i] /= s
 
         # note we are assuming that the basis for all measurements in probval are the same, asserting this would require alot of comparisons
-        unMeasuredDensity = densityEnsambleToDensity([m.unMeasuredDensity for m in pv.values], pv.probs)
+        unMeasuredDensity = densityEnsambleToDensity(pv.probs, [m.unMeasuredDensity for m in pv.values])
 
         # TODO: normalize?
 
