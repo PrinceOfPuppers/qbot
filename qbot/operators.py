@@ -82,7 +82,7 @@ def _qset(val, localNameSpace, lines, lineNum, numQubits, targets):
             err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', target, numQubits - 1))
 
     try:
-        setVal(localNameSpace, lines, lineNum, 'state', density.replaceArbitrary(localNameSpace['state'], val, targets), qset = True)
+        return density.replaceArbitrary(localNameSpace['state'], val, targets)
     except ValueError as e:
         err.raiseFormattedError(err.pythonError(lines,lineNum, e))
 
@@ -97,18 +97,19 @@ def qset(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     val = convertToDensity(lines, lineNum, x)
 
     if len(tokens) == 2:
-
         setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
         return
     else:
         targets = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
 
         if isinstance(targets, ProbVal):
-            funcWrapper(_qset, localNameSpace['state'], localNameSpace, lines, lineNum, numQubits, targets)
+            density = funcWrapper(_qset, val, localNameSpace, lines, lineNum, numQubits, targets).toDensityMatrix()
+            setVal(localNameSpace, lines, lineNum, 'state', density, qset = True)
             return
 
         if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
-            _qset(val, localNameSpace, lines, lineNum, numQubits, targets)
+            density = _qset(val, localNameSpace, lines, lineNum, numQubits, targets)
+            setVal(localNameSpace, lines, lineNum, 'state', density, qset = True)
             return
         err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(targets))))
 
