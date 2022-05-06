@@ -121,6 +121,8 @@ def partialTraceArbitrary(density: np.ndarray, numQubits: int, systemAQubits: li
     size = ensureSquare(density)
     systemAQubits = list(set(systemAQubits))
     systemAQubits.sort()
+    if systemAQubits[0] < 0 or systemAQubits[-1] > numQubits-1:
+        raise IndexError()
 
     systemBQubits = [i for i in range(0,numQubits) if i not in systemAQubits]
 

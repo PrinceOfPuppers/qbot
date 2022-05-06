@@ -236,7 +236,6 @@ class testCircuits(unittest.TestCase):
     def test_gate(self):
         localNameSpace = executeTxt(
             '''
-
             qset computation.density[0]
             gate hadamardGate ; 0
             '''
@@ -258,6 +257,16 @@ class testCircuits(unittest.TestCase):
             '''
             qset tensorPermute(2, 1, computation)
             gate hadamardGate ; 0 ; [1]
+            '''
+        )
+        expectedState = density.tensorProd(globalNameSpace['hadamard'].density[0], globalNameSpace['computation'].density[1])
+        self.assertTrue(np.array_equal(localNameSpace['state'], expectedState))
+
+    def test_controlledGate3(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorPermute(2, 1, computation)
+            gate hadamardGate ; 0 ; 1
             '''
         )
         expectedState = density.tensorProd(globalNameSpace['hadamard'].density[0], globalNameSpace['computation'].density[1])
@@ -307,6 +316,22 @@ class testCircuits(unittest.TestCase):
 
         self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
 
+    def test_gateProbVals3(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorPermute(3, 1, comp)
+            gate hadamardGate ; 0 ; ProbVal([0.5, 0.5], [1, 2])
+            '''
+        )
+        comp0 = globalNameSpace['computation'][0]
+        comp1 = globalNameSpace['computation'][1]
+        hadaPlus = globalNameSpace['hadamard'][0]
+        expectedState = density.densityEnsambleToDensity([0.5, 0.5], [
+            density.tensorProd(hadaPlus, comp0, comp1),
+            density.tensorProd(comp0, comp0, comp1)
+        ])
+
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
 
     def test_discVal(self):
         localNameSpace = executeTxt(
@@ -345,6 +370,28 @@ class testCircuits(unittest.TestCase):
             '''
             qset tensorExp(comp[0], 3)
             qset hada[0] ; ProbVal([0.5, 0.5], [[1], [2]])
+            '''
+        )
+        s1 = density.tensorProd(basis.computation[0], basis.hadamard[0], basis.computation[0])
+        s2 = density.tensorProd(basis.computation[0], basis.computation[0], basis.hadamard[0])
+        expectedState = density.densityEnsambleToDensity([0.5, 0.5], [s1, s2])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_qset3(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorExp(comp[0], 3)
+            qset hada[0] ; 1
+            '''
+        )
+        expectedState = density.tensorProd(basis.computation[0], basis.hadamard[0], basis.computation[0])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_qset4(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorExp(comp[0], 3)
+            qset hada[0] ; ProbVal([0.5, 0.5], [1, 2])
             '''
         )
         s1 = density.tensorProd(basis.computation[0], basis.hadamard[0], basis.computation[0])

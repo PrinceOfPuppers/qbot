@@ -64,6 +64,38 @@ def setVal(localNameSpace, lines, lineNum, key, value, qset = True):
     localNameSpace[f'__updated_{key}'] = True
 
 
+def _ensureContainerErr(lines, lineNum, val, requiredType):
+    a = [f'{x}<{str(requiredType)}>' for x in ('list', 'set', 'tuple')]
+    a.append(requiredType)
+    b = [f'ProbVal<{x}>' for x in a]
+    a.extend(b)
+    err.raiseFormattedError(err.customTypeError(lines, lineNum, b, type(val)))
+
+def ensureContainer(lines, lineNum, val, requiredType = int):
+    '''puts value in a container if it isnt already, also typechecks value'''
+    if isinstance(val,list) or isinstance(val, set) or isinstance(val, tuple):
+        for item in val:
+            if not isinstance(item, requiredType):
+                _ensureContainerErr(lines, lineNum, val, requiredType)
+        return val
+
+    if isinstance(val, ProbVal):
+        for i,pvItem in enumerate(val.values):
+            if isinstance(pvItem,list) or isinstance(pvItem, set) or isinstance(pvItem, tuple):
+                for item in pvItem:
+                    if not isinstance(item, requiredType):
+                        _ensureContainerErr(lines, lineNum, val, requiredType)
+                continue
+
+            if not isinstance(pvItem, requiredType):
+                _ensureContainerErr(lines, lineNum, val, requiredType)
+            val.values[i] = [pvItem]
+        return val
+
+    if not isinstance(val, requiredType):
+        _ensureContainerErr(lines, lineNum, val, requiredType)
+    return [val]
+
 
 # operations
 class OpReturnVal:
@@ -87,8 +119,8 @@ def _qset(val, localNameSpace, lines, lineNum, numQubits, targets):
         err.raiseFormattedError(err.pythonError(lines,lineNum, e))
 
 def qset(localNameSpace, lines, lineNum, tokens) -> OpReturn:
-
     '''sets current hilbertspace (or some subspace of it) to a specific value'''
+
     numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
 
     expr:str = tokens[1]
@@ -100,18 +132,16 @@ def qset(localNameSpace, lines, lineNum, tokens) -> OpReturn:
         setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
         return
     else:
-        targets = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
+        targets = ensureContainer(lines, lineNum, evaluateWrapper(lines, lineNum, tokens[2], localNameSpace))
 
         if isinstance(targets, ProbVal):
             density = funcWrapper(_qset, val, localNameSpace, lines, lineNum, numQubits, targets).toDensityMatrix()
             setVal(localNameSpace, lines, lineNum, 'state', density, qset = True)
             return
 
-        if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
-            density = _qset(val, localNameSpace, lines, lineNum, numQubits, targets)
-            setVal(localNameSpace, lines, lineNum, 'state', density, qset = True)
-            return
-        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(targets))))
+        density = _qset(val, localNameSpace, lines, lineNum, numQubits, targets)
+        setVal(localNameSpace, lines, lineNum, 'state', density, qset = True)
+        return
 
 
 def _disc(localNameSpace, lines, lineNum, numQubits, targets):
@@ -125,7 +155,8 @@ def _disc(localNameSpace, lines, lineNum, numQubits, targets):
 def disc(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
 
-    targets = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
+    targets = ensureContainer(lines, lineNum, evaluateWrapper(lines, lineNum, tokens[1], localNameSpace))
+
     if isinstance(targets, ProbVal):
         targetInst = targets.instance()
         if isinstance(targetInst, list) or isinstance(targetInst, tuple) or isinstance(targetInst, set):
@@ -201,32 +232,54 @@ def qdef(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     setVal(localNameSpace, lines, lineNum, varName, val, qset = True)
 
 
+def _gate(lines, lineNum, numQubits, contorls, firstTarget, gate):
+    gateSize = hilbertSpaceNumQubits(gate)
+    lastTarget = firstTarget+gateSize - 1
+    if firstTarget < 0 or lastTarget > numQubits - 1:
+        err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', firstTarget, numQubits - gateSize))
+
+    if len(contorls) == 0:
+        return gates.genGateForFullHilbertSpace(numQubits, firstTarget, gate)
+
+    for control in contorls:
+        if control < 0 or control > numQubits-1:
+            err.raiseFormattedError(err.customIndexError(lines, lineNum, 'control', control, numQubits-1))
+            
+        if control >= firstTarget and control <= lastTarget:
+            err.raiseFormattedError(err.customControlTargetOverlapError(lines, lineNum, control, firstTarget, lastTarget))
+
+    return gates.genMultiControlledGate(numQubits, contorls, firstTarget, gate)
+
 def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
 
     gate = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
+
     firstTarget = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
 
-    if not (isinstance(firstTarget, ProbVal) or isinstance(firstTarget, int)):
+    if isinstance(firstTarget, int):
+        pass
+    elif isinstance(firstTarget, ProbVal):
+        if not isinstance(firstTarget.instance(), int):
+            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['int'], str(type(firstTarget))))
+    else:
         err.raiseFormattedError(err.customTypeError(lines, lineNum, ['int'], str(type(firstTarget))))
 
     # no controls
     if len(tokens) < 4:
         try:
-            g = funcWrapper( gates.genGateForFullHilbertSpace, numQubits, firstTarget, gate )
+            g = funcWrapper( _gate, lines, lineNum, numQubits, [], firstTarget, gate )
 
         except Exception as e:
             err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
 
     # controls
     else: 
-        controls = evaluateWrapper(lines, lineNum, tokens[3], localNameSpace)
+        controls = ensureContainer(lines, lineNum, evaluateWrapper(lines, lineNum, tokens[3], localNameSpace))
         # TODO ensure controls and targets dont overlap
-        if not (isinstance(controls, ProbVal) or isinstance(controls, list) or isinstance(controls, tuple) or isinstance(controls, set)):
-            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(firstTarget))))
 
         try:
-            g = funcWrapper( gates.genMultiControlledGate, numQubits, controls, firstTarget, gate )
+            g = funcWrapper( _gate, lines, lineNum, numQubits, controls, firstTarget, gate )
         except Exception as e:
             err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
 
@@ -240,7 +293,6 @@ def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
         raise Exception("gate is not array or ProbVal")
 
     setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
-
 
 
 def perm(localNameSpace, lines, lineNum, tokens) -> OpReturn:

@@ -51,6 +51,11 @@ def customNumArgumentsError(lines, lineNum, op, numArgsGiven, numRequiredMin, nu
 def customIndexError(lines, lineNum, targetOrControl, index, maxIndex, minIndex = 0):
     return formatError(lines, lineNum, "IndexError", f"{targetOrControl} index {index} outside of valid range [{minIndex}, {maxIndex}]")
 
+def customControlTargetOverlapError(lines, lineNum, index, minTarget, maxTarget):
+    if minTarget == maxTarget:
+        return formatError(lines, lineNum, "IndexError", f"control index {index} overlaps with target index {minTarget}")
+    return formatError(lines, lineNum, "IndexError", f"control index {index} overlaps with target indices [{minTarget}, {maxTarget}]")
+
 def customTypeError(lines, lineNum, expectedTypes:list[str], gotType:str):
     if len(expectedTypes) > 1:
         expectedTypeStr = f"any of {expectedTypes}"

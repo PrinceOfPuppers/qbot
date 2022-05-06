@@ -309,14 +309,7 @@ def genMultiControlledGate(numQubits:int, controlQubits:list[int], firstTargetQu
 
     controlSize = (2**numControls-1)*targetSize
     newSize = controlSize + targetSize
-    
-    if(numQubits < numControls + numTargets):
-        raise Exception("Number of Qubits effected by Gate and Controls Exceeds Size of Hilbert Space")
-    
-    for contorlQubit in controlQubits:
-        if((contorlQubit >= firstTargetQubit) and (contorlQubit < firstTargetQubit + numTargets)):
-            raise Exception("Number of Qubits effected by Gate and Controls Exceeds Size of Hilbert Space")
-    
+
     # size+1 qubit c-U gate, where qubit 0 is control and 1 is the first target qubit out of size target qubits
     g = np.zeros((newSize, newSize),dtype=complex)
     for i in range(0,controlSize):
