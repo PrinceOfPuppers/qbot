@@ -119,17 +119,23 @@ def _disc(localNameSpace, lines, lineNum, numQubits, targets):
             err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', target, numQubits - 1))
 
     _, val = density.partialTraceArbitrary(localNameSpace['state'], numQubits, targets)
-    setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
+    return val 
 
 def disc(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
 
     targets = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
     if isinstance(targets, ProbVal):
-        funcWrapper(_disc, localNameSpace['state'], localNameSpace, lines, lineNum, numQubits, targets)
-        return
+        targetInst = targets.instance()
+        if isinstance(targetInst, list) or isinstance(targetInst, tuple) or isinstance(targetInst, set):
+            val = funcWrapper(_disc, localNameSpace, lines, lineNum, numQubits, targets)
+            setVal(localNameSpace, lines, lineNum, 'state', convertToDensity(lines, lineNum, val), qset = True)
+            return
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], targets.typeString()))
+
     if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
-        _disc(localNameSpace, lines, lineNum, numQubits, targets)
+        val = _disc(localNameSpace, lines, lineNum, numQubits, targets)
+        setVal(localNameSpace, lines, lineNum, 'state', convertToDensity(lines, lineNum, val), qset = True)
         return
     err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(targets))))
 
@@ -197,7 +203,7 @@ def qdef(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
 
-    gate = convertToDensity(lines, lineNum, evaluateWrapper(lines, lineNum, tokens[1], localNameSpace))
+    gate = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
     firstTarget = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
 
     if not (isinstance(firstTarget, ProbVal) or isinstance(firstTarget, int)):
@@ -206,10 +212,7 @@ def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     # no controls
     if len(tokens) < 4:
         try:
-            fullGate = convertToDensity(
-                    lines, lineNum, 
-                    funcWrapper( gates.genGateForFullHilbertSpace, numQubits, firstTarget, gate )
-                )
+            g = funcWrapper( gates.genGateForFullHilbertSpace, numQubits, firstTarget, gate )
 
         except Exception as e:
             err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
@@ -222,15 +225,19 @@ def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
             err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(firstTarget))))
 
         try:
-            fullGate = convertToDensity(
-                    lines, lineNum, 
-                    funcWrapper( gates.genMultiControlledGate, numQubits, controls, firstTarget, gate )
-                )
-
+            g = funcWrapper( gates.genMultiControlledGate, numQubits, controls, firstTarget, gate )
         except Exception as e:
             err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
 
-    val = gates.applyGate(fullGate, localNameSpace['state'])
+    if isinstance(g, ProbVal):
+        for i in range(len(g.values)):
+            g.values[i] = gates.applyGate(g.values[i], localNameSpace['state'])
+        val = g.toDensityMatrix()
+    elif isinstance(g, np.ndarray):
+        val = gates.applyGate(g, localNameSpace['state'])
+    else:
+        raise Exception("gate is not array or ProbVal")
+
     setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
 
 

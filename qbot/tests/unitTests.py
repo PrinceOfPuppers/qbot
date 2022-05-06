@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import qbot.qgates as gates
 from qbot.evaluation import globalNameSpace
+from qbot.interpreter import executeTxt
 import qbot.density as density
 import qbot.basis as basis
 
@@ -230,6 +231,106 @@ class testPartialTrace(unittest.TestCase):
         solution = density.normalizeDensity(density.tensorProd(comp0, bell00))
 
         self.assertTrue(np.array_equal(state, solution))
+
+class testCircuits(unittest.TestCase):
+    def test_gate(self):
+        localNameSpace = executeTxt(
+            '''
+
+            qset computation.density[0]
+            gate hadamardGate ; 0
+            '''
+        )
+        self.assertTrue(np.array_equal(localNameSpace['state'], globalNameSpace['hadamard'].density[0]))
+
+    def test_controlledGate1(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorExp(computation.density[0], 2)
+            gate hadamardGate ; 0 ; [1]
+            '''
+        )
+        expectedState = density.tensorExp(globalNameSpace['computation'].density[0], 2)
+        self.assertTrue(np.array_equal(localNameSpace['state'], expectedState))
+
+    def test_controlledGate2(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorPermute(2, 1, computation)
+            gate hadamardGate ; 0 ; [1]
+            '''
+        )
+        expectedState = density.tensorProd(globalNameSpace['hadamard'].density[0], globalNameSpace['computation'].density[1])
+        self.assertTrue(np.array_equal(localNameSpace['state'], expectedState))
+
+    def test_largerGate(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(hada[0], hada[0])
+            gate tensorProd(identityGate, hadamardGate) ; 0
+            '''
+        )
+
+        expectedState = density.tensorProd(globalNameSpace['hada'][0], globalNameSpace['comp'][0])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_gateProbVals1(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(comp[0], comp[0])
+            gate ProbVal( [(0.5, tensorProd(identityGate, hadamardGate)), (0.5, tensorProd(hadamardGate, identityGate))] ) ; 0
+            '''
+        )
+        comp0 = globalNameSpace['computation'][0]
+        hadaPlus = globalNameSpace['hadamard'][0]
+        expectedState = density.densityEnsambleToDensity([0.5, 0.5], [
+            density.tensorProd(hadaPlus, comp0),
+            density.tensorProd(comp0, hadaPlus)
+        ])
+
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_gateProbVals2(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorPermute(3, 1, computation)
+            gate hadamardGate ; ProbVal([(0.5, 0), (0.5, 1)]) ; [2]
+            '''
+        )
+        comp0 = globalNameSpace['computation'][0]
+        comp1 = globalNameSpace['computation'][1]
+        hadaPlus = globalNameSpace['hadamard'][0]
+        expectedState = density.densityEnsambleToDensity([0.5, 0.5], [
+            density.tensorProd(hadaPlus, comp0, comp1),
+            density.tensorProd(comp0, hadaPlus, comp1)
+        ])
+
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+
+    def test_discVal(self):
+        localNameSpace = executeTxt(
+            '''
+
+            qset tensorExp(computation.density[0], 2)
+            gate hadamardGate ; 0
+            disc [1]
+            '''
+        )
+        self.assertTrue(np.array_equal(localNameSpace['state'], globalNameSpace['hadamard'].density[0]))
+
+    def test_discProbVal(self):
+        localNameSpace = executeTxt(
+            '''
+
+            qset tensorExp(computation.density[0], 2)
+            gate hadamardGate ; 0
+            disc ProbVal([(0.5, [1]), (0.5, [0])])
+            '''
+        )
+        expectedState = density.densityEnsambleToDensity([0.5, 0.5], [globalNameSpace['hadamard'].density[0], globalNameSpace['computation'].density[0]])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
 
 #class testMeasurement(unittest.TestCase):
 #    def test_computationComputation1(self):

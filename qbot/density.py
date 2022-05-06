@@ -44,7 +44,7 @@ def ketsToDensity(kets:list[np.ndarray],probs: list[float] = None) -> np.ndarray
 
     return result
 
-def densityEnsambleToDensity(densities: list[np.ndarray], probs: list[float]):
+def densityEnsambleToDensity(probs: list[float], densities: list[np.ndarray]):
     if len(probs) != len(densities):
         raise Exception("number of state vectors an number of probabilites must equal")
 

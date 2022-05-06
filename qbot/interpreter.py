@@ -31,7 +31,7 @@ def collapseNamespaces(p1, n1, p2, n2) -> dict:
         if n1Key in n2:
             # either existing key or key was added in both branches since split
             if n1[isQstr] and n2[isQstr]:
-                density.densityEnsambleToDensity([n1[n1Key], n2[n1Key]], [p1, p2])
+                density.densityEnsambleToDensity([p1, p2], [n1[n1Key], n2[n1Key]])
                 continue
 
             n2[n1Key] = ProbVal.fromUnzipped([p1, p2], [n1[n1Key], n2[n1Key]])
@@ -190,5 +190,7 @@ def executeTxt(text: str):
 
     recordMarks(localNameSpace, lines)
     runtime(localNameSpace, lines)
+
+    return localNameSpace
 
 
