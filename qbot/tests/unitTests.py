@@ -399,6 +399,31 @@ class testCircuits(unittest.TestCase):
         expectedState = density.densityEnsambleToDensity([0.5, 0.5], [s1, s2])
         self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
 
+    def test_cdef(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef abc ; 5
+            cdef x_1234 ; ProbVal([0.5, 0.5], [comp[0], hada[0]])
+            qset x_1234
+            '''
+        )
+        expectedState = density.densityEnsambleToDensity([0.5, 0.5], [basis.computation[0], basis.hadamard[0]])
+        self.assertTrue(np.allclose(localNameSpace['x_1234'].toDensityMatrix(), expectedState))
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+        self.assertTrue(localNameSpace['abc'] == 5)
+
+    def test_qdef(self):
+        localNameSpace = executeTxt(
+            '''
+            qdef x_1234 ; ProbVal([0.5, 0.5], [comp[0], hada[0]])
+            qset x_1234
+            '''
+        )
+        expectedState = density.densityEnsambleToDensity([0.5, 0.5], [basis.computation[0], basis.hadamard[0]])
+        self.assertTrue(np.allclose(localNameSpace['x_1234'], expectedState))
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+
 #class testMeasurement(unittest.TestCase):
 #    def test_computationComputation1(self):
 #        state = density.ketsToDensity([basis.computation.kets[0]])

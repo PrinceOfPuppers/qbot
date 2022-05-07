@@ -218,8 +218,7 @@ def qjmp(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 def cdef(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     varName = getVarName(lines, lineNum, tokens[1])
 
-    expr = tokens[2]
-    val = evaluateWrapper(lines, lineNum, expr, localNameSpace)
+    val = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
     setVal(localNameSpace, lines, lineNum, varName, val, qset = False)
 
 
