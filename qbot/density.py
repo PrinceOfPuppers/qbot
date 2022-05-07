@@ -145,6 +145,51 @@ def partialTraceArbitrary(density: np.ndarray, numQubits: int, systemAQubits: li
 
     return partialTraceBoth(swappedDensity,numSysAQubits,numSysBQubits)
 
+def interweaveDensities(systemADensity: np.ndarray, systemBDensity: np.ndarray, newSystemAQubits: list[int]):
+    systemASize = ensureSquare(systemADensity)
+    systemBSize = ensureSquare(systemBDensity)
+
+    systemANumQubits = log2(systemASize)
+    systemBNumQubits = log2(systemBSize)
+    numQubits = systemANumQubits + systemBNumQubits
+
+    newSystemAQubits = list(set(newSystemAQubits))
+    newSystemAQubits.sort()
+    
+    if newSystemAQubits[0] < 0 or newSystemAQubits[-1] > numQubits-1:
+        raise IndexError()
+
+    if len(newSystemAQubits) < systemANumQubits:
+        raise ValueError()
+
+    # populate newSystemBQubits
+    nextAIndex = 0
+    newSystemBQubits = []
+    for i in range(numQubits):
+        if nextAIndex < len(newSystemAQubits) and i == newSystemAQubits[nextAIndex]:
+            nextAIndex += 1
+            continue
+        newSystemBQubits.append(i)
+
+
+    startSystemBQubits = systemANumQubits
+    def stateMap(state):
+        res = 0
+        for i,systemAIndex in enumerate(newSystemAQubits):
+            mask = 1 << numQubits - i - 1
+            res |= ((mask & state)!= 0) << (numQubits - 1 - systemAIndex)
+
+        for i,systemBIndex in enumerate(newSystemBQubits):
+            mask = 1 << numQubits - i-startSystemBQubits - 1
+            res |= ((mask & state)!= 0) << (numQubits - 1 - systemBIndex)
+        return res
+
+    swapGate = gates.genArbitrarySwap(systemASize + systemBSize, stateMap)
+
+    swappedDensity = swapGate @ tensorProd(systemADensity, systemBDensity) @ swapGate.conj().T
+    return swappedDensity
+
+
 def replaceArbitrary(density: np.ndarray, newDensity: np.ndarray, qubitsToReplace: list[int]):
     size = ensureSquare(density)
     numQubits = log2(size)
@@ -194,34 +239,37 @@ def densityToStateEnsable(density:np.ndarray) -> List[Tuple[float, np.ndarray]]:
 
 
 def tmp():
+    systemANumQubits = 4
+    systemBNumQubits = 0
+    numQubits = systemANumQubits + systemBNumQubits
 
-    def stateMap(numQubits, qubitsToReplace, state):
-        newQubitsOffset = numQubits - len(qubitsToReplace)
+    newSystemAQubits = [0, 1, 2, 3]
+
+    # populate newSystemBQubits
+    nextAIndex = 0
+    newSystemBQubits = []
+    for i in range(numQubits):
+        if nextAIndex < len(newSystemAQubits) and i == newSystemAQubits[nextAIndex]:
+            nextAIndex += 1
+            continue
+        newSystemBQubits.append(i)
+
+    startSystemBQubits = systemANumQubits
+    print(newSystemBQubits)
+
+    def stateMap(state):
         res = 0
+        for i,systemAIndex in enumerate(newSystemAQubits):
+            mask = 1 << numQubits - i - 1
+            res |= ((mask & state)!= 0) << (numQubits - 1 - systemAIndex)
 
-        qubitsToReplaceOffset = 0
-
-        for i in range(numQubits):
-            print(f"{i}")
-            if qubitsToReplaceOffset < len(qubitsToReplace) and i == qubitsToReplace[qubitsToReplaceOffset]:
-                x= numQubits -1 - newQubitsOffset - qubitsToReplaceOffset
-                print(f'here1 {x}')
-                mask = 1 << x
-                print(f"mask {mask:0{numQubits}b}")
-                res |= ((mask & state)!= 0) << (numQubits-1 - i)
-
-                qubitsToReplaceOffset+=1
-            else:
-                print('here2')
-                mask = 1 << numQubits-1 - i + qubitsToReplaceOffset
-                print(f"mask {mask:0{numQubits}b}")
-                res |= ((mask & state)!= 0) << (numQubits-1 - i)
+        for i,systemBIndex in enumerate(newSystemBQubits):
+            mask = 1 << numQubits - i-startSystemBQubits - 1
+            res |= ((mask & state)!= 0) << (numQubits - 1 - systemBIndex)
         return res
 
-    numQubits = 2
-    qubitsToReplace = [0]
-    state = 0b01
-    x = stateMap(numQubits, qubitsToReplace, state)
+    state = 0b1100
+    x = stateMap(state)
     print(f"{state:0{numQubits}b}")
     print(f"{x:0{numQubits}b}")
 

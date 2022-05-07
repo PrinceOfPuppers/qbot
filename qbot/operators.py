@@ -3,7 +3,7 @@ import numpy as np
 import qbot.basis as basis
 from qbot.probVal import ProbVal, funcWrapper
 from qbot.evaluation import evaluateWrapper
-from qbot.measurement import measureArbitraryMultiState, MeasurementResult
+from qbot.measurement import measureArbitraryMultiState, MeasurementResult, MeasurementIndexError
 import qbot.density as density
 import qbot.qgates as gates
 import qbot.errors as err
@@ -135,7 +135,9 @@ def qset(localNameSpace, lines, lineNum, tokens) -> OpReturn:
         targets = ensureContainer(lines, lineNum, evaluateWrapper(lines, lineNum, tokens[2], localNameSpace))
 
         if isinstance(targets, ProbVal):
-            density = funcWrapper(_qset, val, localNameSpace, lines, lineNum, numQubits, targets).toDensityMatrix()
+            density = funcWrapper(_qset, val, localNameSpace, lines, lineNum, numQubits, targets)
+            if isinstance(density, ProbVal):
+                density = density.toDensityMatrix()
             setVal(localNameSpace, lines, lineNum, 'state', density, qset = True)
             return
 
@@ -169,7 +171,7 @@ def disc(localNameSpace, lines, lineNum, tokens) -> OpReturn:
         val = _disc(localNameSpace, lines, lineNum, numQubits, targets)
         setVal(localNameSpace, lines, lineNum, 'state', convertToDensity(lines, lineNum, val), qset = True)
         return
-    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], str(type(targets))))
+    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], type(targets).__name__))
 
 
 def jump(localNameSpace, lines, lineNum, tokens) -> OpReturn:
@@ -208,7 +210,7 @@ def cjmp(localNameSpace, lines, lineNum, tokens) -> OpReturn:
         return
 
     else:
-        err.raiseFormattedError( err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], str(type(cond))) )
+        err.raiseFormattedError( err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], type(cond).__name__) )
 
 
 def qjmp(localNameSpace, lines, lineNum, tokens) -> OpReturn:
@@ -260,9 +262,9 @@ def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
         pass
     elif isinstance(firstTarget, ProbVal):
         if not isinstance(firstTarget.instance(), int):
-            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['int'], str(type(firstTarget))))
+            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['int'], type(firstTarget).__name__))
     else:
-        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['int'], str(type(firstTarget))))
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['int'], type(firstTarget).__name__))
 
     # no controls
     if len(tokens) < 4:
@@ -298,25 +300,28 @@ def perm(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     raise NotImplementedError()
 
 
-def meas(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+def meas(localNameSpace, lines, lineNum, tokens, changeState = True) -> OpReturn:
     varName = getVarName(lines, lineNum, tokens[1])
 
-    b = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
+    measBasis = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
     # TODO allow for probval basis
-    if not isinstance(b, basis.Basis):
-        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['Basis'], str(type(b))))
+    if not isinstance(measBasis, basis.Basis):
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['Basis'], type(measBasis).__name__))
 
     try:
         if len(tokens) < 4:
-            result = measureArbitraryMultiState(localNameSpace['state'], b)
+            result = measureArbitraryMultiState(localNameSpace['state'], measBasis, changeState)
         else:
-            targets = evaluateWrapper(lines, lineNum, tokens[3], localNameSpace)
-            if isinstance(targets, list):
-                result = measureArbitraryMultiState(localNameSpace['state'], b, targets)
-            elif isinstance(targets, ProbVal):
-                result = funcWrapper(measureArbitraryMultiState, localNameSpace['state'], b, targets)
+            targets = ensureContainer(lines, lineNum, evaluateWrapper(lines, lineNum, tokens[3], localNameSpace))
+
+            if isinstance(targets, ProbVal):
+                result = funcWrapper(measureArbitraryMultiState, localNameSpace['state'], measBasis, targets, changeState)
+
             else:
-                err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list<int>', 'ProbVal<list<int>>'], str(type(b))))
+                result = measureArbitraryMultiState(localNameSpace['state'], measBasis, targets, changeState)
+
+    except MeasurementIndexError as e:
+        err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', e.args[1], e.args[3]))
     except Exception as e:
         err.raiseFormattedError(err.pythonError(lines, lineNum, e))
 
@@ -324,6 +329,11 @@ def meas(localNameSpace, lines, lineNum, tokens) -> OpReturn:
         result = MeasurementResult.fromProbVal(result)
 
     localNameSpace[varName] = result
+    if changeState:
+        setVal(localNameSpace, lines, lineNum, 'state', result.newState, qset = True)
+
+def peek(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    return meas(localNameSpace, lines, lineNum, tokens, changeState = False)
 
 
 def cout(localNameSpace, lines, lineNum, tokens) -> OpReturn:
@@ -343,6 +353,7 @@ operations = {
     'gate': (gate, 2, 3),
     'perm': (perm, 1, 1),
     'meas': (meas, 2, 3),
+    'peek': (peek, 2, 3),
     #'mark': (mark, 1, 1),
     'cout': (cout, 1, 1),
 }

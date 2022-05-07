@@ -60,7 +60,7 @@ def customTypeError(lines, lineNum, expectedTypes:list[str], gotType:str):
     if len(expectedTypes) > 1:
         expectedTypeStr = f"any of {expectedTypes}"
     else:
-        expectedTypeStr = f"{expectedTypes}"
+        expectedTypeStr = f"{expectedTypes[0]}"
 
     return formatError(lines, lineNum, "TypeError", f"{gotType} cannot be interpreted as {expectedTypeStr}")
 

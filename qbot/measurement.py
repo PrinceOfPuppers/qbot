@@ -2,7 +2,7 @@ import numpy as np
 
 from qbot.basis import Basis
 from qbot.probVal import ProbVal
-from qbot.density import densityEnsambleToDensity, tensorProd, partialTraceArbitrary
+from qbot.density import densityEnsambleToDensity, tensorProd, partialTraceArbitrary, interweaveDensities
 from qbot.helpers import ensureSquare, log2
 
 from typing import Union
@@ -12,13 +12,15 @@ class MeasurementResult:
         'unMeasuredDensity',
         'probs',
         'basisDensity',
-        'basisSymbols'
+        'basisSymbols',
+        'newState'
     )
-    def __init__(self, unMeasuredDensity: np.ndarray, probs: list[float], basisDensity: list[np.ndarray], basisSymbols:list[str]):
+    def __init__(self, unMeasuredDensity: np.ndarray, probs: list[float], basisDensity: list[np.ndarray], basisSymbols:list[str], newState = None):
         self.unMeasuredDensity = unMeasuredDensity 
         self.probs = probs
         self.basisDensity = basisDensity
         self.basisSymbols = basisSymbols
+        self.newState = newState
 
     def __repr__(self):
         s = ''
@@ -52,12 +54,12 @@ class MeasurementResult:
         # note we are assuming that the basis for all measurements in probval are the same, asserting this would require alot of comparisons
         unMeasuredDensity = densityEnsambleToDensity(pv.probs, [m.unMeasuredDensity for m in pv.values])
 
-        # TODO: normalize?
+        # note we assume that if one MeasurementResult has a newState, then they all do
+        if meas.newState is not None:
+            newState = densityEnsambleToDensity(pv.probs, [m.newState for m in pv.values])
+            return MeasurementResult(unMeasuredDensity, newProbs, meas.basisDensity, meas.basisSymbols, newState)
 
         return MeasurementResult(unMeasuredDensity, newProbs, meas.basisDensity, meas.basisSymbols)
-
-
-
 
 
 def tensorPermute(numTensProd: int, n: int, d: Union[list[np.ndarray], Basis]):
@@ -92,15 +94,24 @@ def permuteBasis(numTensProd: int, n: int, basis: Basis):
     return state, s
 
 
-def measureArbitraryMultiState(density: np.ndarray, basis: Basis, toMeasure: list[int] = None):
+class MeasurementIndexError(Exception):
+    pass
+def measureArbitraryMultiState(state: np.ndarray, basis: Basis, toMeasure = None, returnState = True):
     '''measures all targets in toMeasure, if basis states are smaller than the number of targets, will measure in basis of tensorproducts of basis states'''
-    numQubits = log2(ensureSquare(density))
-
-    numQubits = log2(ensureSquare(density))
+    numQubits = log2(ensureSquare(state))
 
     if toMeasure is None:
         numTargets = numQubits
     else:
+        if isinstance(toMeasure,set):
+            toMeasure = list(toMeasure)
+        else:
+            toMeasure = list(set(toMeasure))
+
+        for target in toMeasure:
+            if target < 0 or target > numQubits - 1:
+                raise MeasurementIndexError(f"measurement target {target} outside of valid range [{0}, {numQubits - 1}]", target, 0, numQubits - 1)
+
         numTargets = len(toMeasure)
 
     basisQubitSize = log2(ensureSquare(basis.density[0]))
@@ -113,10 +124,10 @@ def measureArbitraryMultiState(density: np.ndarray, basis: Basis, toMeasure: lis
 
 
     if toMeasure is None or len(toMeasure) == numQubits:
-        toMeasureDensity = density
+        systemA = state
+        systemB = np.ndarray([], dtype=complex)
     else:
-        toMeasure = list(set(toMeasure))
-        toMeasureDensity, _ = partialTraceArbitrary(density, numQubits, toMeasure)
+        systemA, systemB = partialTraceArbitrary(state, numQubits, toMeasure)
 
 
     numTensProd = numTargets // basisQubitSize
@@ -128,7 +139,7 @@ def measureArbitraryMultiState(density: np.ndarray, basis: Basis, toMeasure: lis
     for i in range(0, len(basis.density)**numTensProd):
         basisState, basisStateSymbol = permuteBasis(numTensProd, i, basis)
         probs.append(
-            abs(np.trace(np.matmul(toMeasureDensity, basisState)))
+            abs(np.trace(np.matmul(systemA, basisState)))
         )
         basisStates.append(basisState)
         basisSymbols.append(basisStateSymbol)
@@ -138,4 +149,6 @@ def measureArbitraryMultiState(density: np.ndarray, basis: Basis, toMeasure: lis
     for i in range(0,len(probs)):
         probs[i] /= s
     
-    return MeasurementResult(toMeasureDensity,probs, basisStates, basisSymbols)
+    if returnState:
+        return MeasurementResult(systemA, probs, basisStates, basisSymbols, interweaveDensities(systemA, systemB, toMeasure))
+    return MeasurementResult(systemA, probs, basisStates, basisSymbols)

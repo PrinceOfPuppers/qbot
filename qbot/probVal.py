@@ -2,6 +2,7 @@ from typing import List, Tuple
 import math
 import operator
 import numpy as np
+from typing import Callable, TypeVar, Union
 
 smallVal = 1e-5
 probRounding = 15
@@ -12,52 +13,6 @@ def valsClose(a, b):
     if isinstance(a, np.ndarray) or isinstance(b,np.ndarray):
         return (a == b).all()
     return a == b
-
-
-def funcWrapper(func, *args, **kwargs):
-    '''wrapper for functions, makes them probabilistic (ProbVal inputs and return)'''
-    probs = []
-    vals = []
-
-    numLoop = 1
-
-    for arg in args:
-        if isinstance(arg, ProbVal):
-            numLoop *= len(arg.probs)
-
-    for _, value in kwargs:
-        if isinstance(value, ProbVal):
-            numLoop *= len(value.probs)
-
-
-    argPermutation = len(args)*[None]
-    kwargPermutation = {**kwargs}
-    for i in range(0, numLoop):
-        remainder = i
-        prob = 1
-        for i,arg in enumerate(args):
-            if isinstance(arg, ProbVal):
-                index = remainder % len(arg.probs)
-                remainder //= len(arg.probs)
-                prob *= arg.probs[index]
-                argPermutation[i] = arg.values[index]
-            else:
-                argPermutation[i] = arg
-
-        for i, item in enumerate(kwargs.items()):
-            key, value = item
-            if isinstance(value, ProbVal):
-                index = remainder % len(value.probs)
-                remainder //= len(value.probs)
-                prob *= value.probs[index]
-                kwargPermutation[key] = value.values[index]
-            else:
-                kwargPermutation[key] = value
-
-        probs.append(prob)
-        vals.append(func(*argPermutation, **kwargPermutation))
-
-    return ProbVal.fromUnzipped(probs, vals)
 
 
 class ProbVal:
@@ -364,4 +319,51 @@ class ProbVal:
 
     def __rmatmul__(self, other):
         return self.__matmul__(other, reversed = True)
+
+
+T = TypeVar('T')
+def funcWrapper(func: Callable[...,T], *args, **kwargs) -> Union[ProbVal, T]:
+    '''wrapper for functions, makes them probabilistic (ProbVal inputs and return)'''
+    probs = []
+    vals = []
+
+    numLoop = 1
+
+    for arg in args:
+        if isinstance(arg, ProbVal):
+            numLoop *= len(arg.probs)
+
+    for _, value in kwargs:
+        if isinstance(value, ProbVal):
+            numLoop *= len(value.probs)
+
+
+    argPermutation = len(args)*[None]
+    kwargPermutation = {**kwargs}
+    for i in range(0, numLoop):
+        remainder = i
+        prob = 1
+        for i,arg in enumerate(args):
+            if isinstance(arg, ProbVal):
+                index = remainder % len(arg.probs)
+                remainder //= len(arg.probs)
+                prob *= arg.probs[index]
+                argPermutation[i] = arg.values[index]
+            else:
+                argPermutation[i] = arg
+
+        for i, item in enumerate(kwargs.items()):
+            key, value = item
+            if isinstance(value, ProbVal):
+                index = remainder % len(value.probs)
+                remainder //= len(value.probs)
+                prob *= value.probs[index]
+                kwargPermutation[key] = value.values[index]
+            else:
+                kwargPermutation[key] = value
+
+        probs.append(prob)
+        vals.append(func(*argPermutation, **kwargPermutation))
+
+    return ProbVal.fromUnzipped(probs, vals)
 

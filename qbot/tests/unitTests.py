@@ -232,7 +232,10 @@ class testPartialTrace(unittest.TestCase):
 
         self.assertTrue(np.array_equal(state, solution))
 
-class testCircuits(unittest.TestCase):
+
+
+
+class testOperations(unittest.TestCase):
     def test_gate(self):
         localNameSpace = executeTxt(
             '''
