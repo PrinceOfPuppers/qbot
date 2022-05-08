@@ -154,7 +154,7 @@ def _disc(localNameSpace, lines, lineNum, numQubits, targets):
             err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', target, numQubits - 1))
 
     _, val = density.partialTraceArbitrary(localNameSpace['state'], numQubits, targets)
-    return val 
+    return val
 
 def disc(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
@@ -247,7 +247,7 @@ def _gate(lines, lineNum, numQubits, contorls, firstTarget, gate):
     for control in contorls:
         if control < 0 or control > numQubits-1:
             err.raiseFormattedError(err.customIndexError(lines, lineNum, 'control', control, numQubits-1))
-            
+
         if control >= firstTarget and control <= lastTarget:
             err.raiseFormattedError(err.customControlTargetOverlapError(lines, lineNum, control, firstTarget, lastTarget))
 
@@ -277,7 +277,7 @@ def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
             err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
 
     # controls
-    else: 
+    else:
         controls = ensureContainer(lines, lineNum, evaluateWrapper(lines, lineNum, tokens[3], localNameSpace))
         # TODO ensure controls and targets dont overlap
 

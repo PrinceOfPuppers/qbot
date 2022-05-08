@@ -5,7 +5,7 @@ from fractions import Fraction
 def printBits(x, numBits):
     fmt = f'0{numBits}b'
     print(format(x, fmt))
-    
+
 def log2(x):
     if x == 0: # matrices of zero width have zero qubits
         return 0
@@ -30,10 +30,10 @@ def ensureSquare(array: np.ndarray):
     if(array.ndim!=2):
         raise Exception("array must be 2 dimensional")
     shape = array.shape
-    
+
     if(shape[0]!=shape[1]):
         raise Exception("array must be square")
-    
+
     return shape[0]
 
 
@@ -81,17 +81,17 @@ maxDenom = 50
 tolerance = 1e-6
 vals    = [sqrt(2), sqrt(3), sqrt(5), np.pi, np.e, sqrt(np.pi), sqrt(2*np.pi)]
 symbols = ['√2','√3','√5','π','e','√π','√2√π']
-  
+
 def floatToAlgebra(f:float,addToNumerator = ''):
 
     nume,denom = bestRationalApprox(f,maxDenom)
-    
+
     if close(f,nume/denom,tolerance):
         result = str(nume)+addToNumerator
         if denom!=1:
             result+=f'/{denom}'
         return result
-    
+
     #val in numerator
     for i,val in enumerate(vals):
         coeff = f/val
@@ -101,7 +101,7 @@ def floatToAlgebra(f:float,addToNumerator = ''):
             if denom!=1:
                 result+=f'/{denom}'
             return result
-    
+
     #val in denominator
     for i,val in enumerate(vals):
         coeff = val*f
@@ -111,14 +111,14 @@ def floatToAlgebra(f:float,addToNumerator = ''):
                 return f'{nume}{addToNumerator}/{denom}{symbols[i]}'
             else:
                 return f'{nume}{addToNumerator}/{symbols[i]}'
-        
+
     return str(round(f,tolerance)) + addToNumerator
 
 
 def complexToAlgebra(c:complex):
     real = floatToAlgebra(c.real)
     imag = floatToAlgebra(c.imag,'j')
-    
+
     if imag == '0j':
         return real
     elif real == '0':
@@ -136,7 +136,7 @@ def stateVecStr(state:np.ndarray):
         ket = f' + {complexToAlgebra(ele)} |{format(i,f"0{size-1}b")}〉'
         result += ket
     return result
-        
+
 
 if __name__ == "__main__":
     print(boundsOverlap(4,5,4,4))

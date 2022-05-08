@@ -37,18 +37,6 @@ computation = Basis(
     '∡'
 )
 
-#computation2D = Basis(
-#    'computation2D', 
-#    [
-#        np.array([1,0,0,0], dtype = complex),
-#        np.array([0,1,0,0], dtype = complex),
-#        np.array([0,0,1,0], dtype = complex),
-#        np.array([0,0,0,1], dtype = complex),
-#    ],
-#    [ "|00〉", "|01〉", "|10〉", "|11〉" ],
-#    '∡ 2D'
-#)
-
 oneOverRoot2 = 2**(-1/2)
 
 hadamard = Basis(

@@ -64,7 +64,7 @@ def ketsToDensityZipped(pairs: List[Tuple[float, np.ndarray]]) -> np.ndarray:
     if len(pairs) == 1:
         return ketToDensity(pairs[0][1])
 
-    
+
     result = np.zeros( (pairs[0][1].shape[0], pairs[0][1].shape[0]),dtype=complex )
 
     for prob, ket in pairs:
@@ -81,16 +81,16 @@ def partialTrace(density:np.ndarray, nQubits, mQubits, traceN = True):
 
     dimN = 2**nQubits
     dimM = 2**mQubits
-    
+
     size = ensureSquare(density)
-    
+
     if(dimN + dimM != size):
         raise Exception("incorrect number of qubits")
-    
+
     axis1,axis2 = (1,3) if traceN else (0,2)
 
     return  np.trace(
-                density.reshape(dimN,dimM,dimN,dimM), 
+                density.reshape(dimN,dimM,dimN,dimM),
                 axis1=axis1, axis2=axis2
             )
 
@@ -105,16 +105,16 @@ def partialTraceBoth(density,nQubits,mQubits):
 
     dimN = 2**nQubits
     dimM = 2**mQubits
-    
+
     return (
         np.trace(
-            density.reshape(dimN,dimM,dimN,dimM), 
+            density.reshape(dimN,dimM,dimN,dimM),
             axis1=1, axis2=3
         ),
         np.trace(
-            density.reshape(dimN,dimM,dimN,dimM), 
+            density.reshape(dimN,dimM,dimN,dimM),
             axis1=0, axis2=2
-        )          
+        )
     )
 
 def partialTraceArbitrary(density: np.ndarray, numQubits: int, systemAQubits: list[int]):
@@ -155,7 +155,7 @@ def interweaveDensities(systemADensity: np.ndarray, systemBDensity: np.ndarray, 
 
     newSystemAQubits = list(set(newSystemAQubits))
     newSystemAQubits.sort()
-    
+
     if newSystemAQubits[0] < 0 or newSystemAQubits[-1] > numQubits-1:
         raise IndexError(newSystemAQubits, numQubits, '\n', systemADensity, '\n', systemBDensity, '\n', systemANumQubits, systemBNumQubits)
 
@@ -225,7 +225,7 @@ def replaceArbitrary(density: np.ndarray, newDensity: np.ndarray, qubitsToReplac
     return swappedDensity
 
 
-    
+
 
 def densityToStateEnsable(density:np.ndarray) -> List[Tuple[float, np.ndarray]]:
     '''Returns Eiganvalue pairs corrisponding which represent probability, state pairs'''

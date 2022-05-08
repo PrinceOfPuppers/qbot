@@ -95,7 +95,7 @@ class ProbVal:
             return pv.values[0]
         return pv
 
-    
+
     def toDensityMatrix(self):
         if isinstance(self.instance(), np.ndarray):
             sum = 0
@@ -112,7 +112,7 @@ class ProbVal:
 
     def map(self, func):
         return ProbVal.fromUnzipped(self.probs, [func(val) for val in self.values])
-    
+
     def typeString(self):
         inst = self.instance()
         if inst is None:

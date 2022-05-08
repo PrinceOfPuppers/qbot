@@ -16,7 +16,7 @@ class MeasurementResult:
         'newState'
     )
     def __init__(self, unMeasuredDensity: np.ndarray, probs: list[float], basisDensity: list[np.ndarray], basisSymbols:list[str], newState = None):
-        self.unMeasuredDensity = unMeasuredDensity 
+        self.unMeasuredDensity = unMeasuredDensity
         self.probs = probs
         self.basisDensity = basisDensity
         self.basisSymbols = basisSymbols
@@ -148,7 +148,7 @@ def measureArbitraryMultiState(state: np.ndarray, basis: Basis, toMeasure = None
 
     for i in range(0,len(probs)):
         probs[i] /= s
-    
+
     if returnState:
         measured = densityEnsambleToDensity(probs, basisStates)
         if toMeasure is None:

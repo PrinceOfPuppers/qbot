@@ -21,7 +21,7 @@ def collapseNamespaces(p1, n1, p2, n2) -> dict:
         if not n1[isUpdatedStr]:
             continue
 
-        
+
         isQstr = f'__is_q_{n1Key}'
 
 
