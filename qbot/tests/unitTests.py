@@ -301,6 +301,16 @@ class testMeasurment(unittest.TestCase):
         self.assertListEqual(measurementResult.probs,[1, 0, 0, 0])
         self.assertTrue(np.allclose( measurementResult.newState, meas.tensorPermute(3, 2, basis.computation) ))
 
+    def test_measureArbitrary6(self):
+        state = basis.bell[0]
+        measurementResult = meas.measureArbitraryMultiState(state, basis.computation, [0])
+
+        mixedComp = density.densityEnsambleToDensity([0.5, 0.5], basis.hadamard.density)
+        expectedState = density.tensorProd(mixedComp, density.densityEnsambleToDensity([0.5, 0.5], basis.hadamard.density))
+
+        self.assertTrue(measurementResult.probs == [0.5, 0.5])
+        self.assertTrue(np.allclose(measurementResult.newState, expectedState))
+
 
 class testOperations(unittest.TestCase):
     def test_gate(self):
@@ -503,6 +513,52 @@ class testOperations(unittest.TestCase):
         )
         expectedState = density.tensorExp(basis.computation[0], 3)
         self.assertTrue(localNameSpace['x'].probs == [1, 0])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_meas2(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(hada[0], comp[0], hada[0])
+            meas x; comp ; 2
+            '''
+        )
+        expectedState = density.tensorProd(basis.hadamard[0], basis.computation[0], density.densityEnsambleToDensity([0.5, 0.5], basis.computation.density))
+        self.assertTrue(localNameSpace['x'].probs == [0.5, 0.5])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_meas3(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(bell[0], comp[0], hada[0])
+            meas x; comp ; (0, 3)
+            '''
+        )
+        mixedComp = density.densityEnsambleToDensity([0.5, 0.5], basis.computation.density)
+        expectedState = density.tensorProd(mixedComp, density.densityEnsambleToDensity([0.5, 0.5], basis.hadamard.density), basis.computation[0], mixedComp)
+        self.assertTrue(localNameSpace['x'].probs == [0.25, 0.25, 0.25, 0.25])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_meas4(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(bell[0], comp[0], hada[0])
+            meas x; comp ; {0, 3}
+            '''
+        )
+        mixedComp = density.densityEnsambleToDensity([0.5, 0.5], basis.computation.density)
+        expectedState = density.tensorProd(mixedComp, density.densityEnsambleToDensity([0.5, 0.5], basis.hadamard.density), basis.computation[0], mixedComp)
+        self.assertTrue(localNameSpace['x'].probs == [0.25, 0.25, 0.25, 0.25])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_peek(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(bell[0], comp[0], hada[0])
+            peek x; comp ; {0, 3}
+            '''
+        )
+        expectedState = density.tensorProd(basis.bell[0], basis.computation[0], basis.hadamard[0])
+        self.assertTrue(localNameSpace['x'].probs == [0.25, 0.25, 0.25, 0.25])
         self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
 
 if __name__ == "__main__":
