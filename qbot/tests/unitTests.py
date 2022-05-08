@@ -601,13 +601,24 @@ class testOperations(unittest.TestCase):
             '''
         )
         val = localNameSpace['x']
+        correctVal = ProbVal([0.25, 0.75], [1234, "hello"])
         self.assertTrue(isinstance(val, ProbVal))
-        if val.values[0] == 1234:
-            self.assertListEqual(val.probs, [0.25, 0.75])
-            self.assertListEqual(val.values, [1234, 'hello'])
-        else:
-            self.assertListEqual(val.probs, [0.75, 0.25])
-            self.assertListEqual(val.values, ['hello', 1234])
+        self.assertTrue(val.isEquivalent(correctVal))
+
+    def test_halt5(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; ProbVal([0.25, 0.75], [True, False])
+            halt x
+            halt not x
+            cdef x ; "shouldNeverReach"
+            '''
+        )
+        val = localNameSpace['x']
+        self.assertTrue(isinstance(val, ProbVal))
+        for value in val.values:
+            if value == "shouldNeverReach":
+                self.fail()
 
     def test_jump1(self):
         localNameSpace = executeTxt(
@@ -632,6 +643,63 @@ class testOperations(unittest.TestCase):
         )
         self.assertEqual(localNameSpace['x'], 2)
 
+    def test_cjmp1(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 1234
+            cjmp end ; True
+            cdef x ; "hello"
+            mark end
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], 1234)
+
+    def test_cjmp2(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 1234
+            cjmp end ; False
+            cdef x ; "hello"
+            mark end
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], "hello")
+
+    def test_cjmp3(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 0
+            mark inc
+            cdef x ; x + 1
+            cjmp inc ; x < 2
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], 2)
+
+    def test_cjmp4(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; ProbVal([0.5, 0.5], [0, 1])
+            mark inc
+            cdef x ; x + 1
+            cjmp inc ; x < 2 ; end
+            mark end
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], 2)
+
+    def test_cjmp5(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; ProbVal([0.5, 0.5], [0, 1])
+            mark inc
+            cdef x ; x + 1
+            cjmp inc ; x < 2 or x == 1; end
+            mark end
+            '''
+        )
+        print(localNameSpace['x'])
+        self.assertTrue( localNameSpace['x'].isEquivalent(ProbVal([0.5, 0.5], [1, 2])) )
 if __name__ == "__main__":
     unittest.main()
 

@@ -110,6 +110,24 @@ class ProbVal:
             return sum
         raise TypeError()
 
+    def isEquivalent(self, other) -> bool:
+        '''used to determine if two ProbVals are interchangable (different to == which returns probval of bools)'''
+        if len(self.probs) != len(other.probs):
+            return False
+
+        # note all values in values are unique
+        for i, prob in enumerate(self.probs):
+            val = self.values[i]
+            try:
+                index = other.values.index(val)
+            except ValueError:
+                return False
+            if not abs(prob - other.probs[index]) < smallVal:
+                return False
+
+        return True
+
+
     def map(self, func):
         return ProbVal.fromUnzipped(self.probs, [func(val) for val in self.values])
 
