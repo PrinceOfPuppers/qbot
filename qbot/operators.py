@@ -35,7 +35,7 @@ def getMarkLineNum(localNameSpace, lines, lineNum, token) -> int:
         except KeyError:
             err.raiseFormattedError(err.customUnknownMarkName(lines, lineNum, token))
 
-    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['str'], type(res)))
+    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['str'], type(res).__name__))
 
 
 def convertToDensity(lines, lineNum, val):
@@ -46,7 +46,7 @@ def convertToDensity(lines, lineNum, val):
             err.raiseFormattedError(err.customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], val.typeString()))
 
     if not isinstance(val, np.ndarray):
-        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], type(val)))
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['np.ndarray', 'ProbVal<np.ndarray>'], type(val).__name__))
 
     if len(val.shape) == 1:
         np.outer(val, val)
@@ -69,7 +69,7 @@ def _ensureContainerErr(lines, lineNum, val, requiredType):
     a.append(requiredType)
     b = [f'ProbVal<{x}>' for x in a]
     a.extend(b)
-    err.raiseFormattedError(err.customTypeError(lines, lineNum, b, type(val)))
+    err.raiseFormattedError(err.customTypeError(lines, lineNum, b, type(val).__name__))
 
 def ensureContainer(lines, lineNum, val, requiredType = int):
     '''puts value in a container if it isnt already, also typechecks value'''
@@ -99,11 +99,13 @@ def ensureContainer(lines, lineNum, val, requiredType = int):
 
 # operations
 class OpReturnVal:
-    jumpLineNum: Union[int, ProbVal]
+    jumpLineNum: Union[int, ProbVal, None]
     joinLineNum: Union[int, None]
-    def __init__(self, jumpLineNum, joinLineNum = None):
+    halt: Union[bool, ProbVal]
+    def __init__(self, jumpLineNum = None, joinLineNum = None, halt = False):
         self.jumpLineNum = jumpLineNum
         self.joinLineNum = joinLineNum
+        self.halt = halt
 
 OpReturn = Union[OpReturnVal, None]
 
@@ -340,6 +342,24 @@ def cout(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     print(evaluateWrapper(lines, lineNum, tokens[1], localNameSpace))
 
 
+def halt(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    if len(tokens) < 2:
+        return OpReturnVal(halt = True)
+
+    val = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
+
+    if isinstance(val, bool):
+        return OpReturnVal(halt = val)
+
+    if isinstance(val, ProbVal):
+        if not isinstance(val.instance(), bool):
+            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], val.typeString()))
+        return OpReturnVal(halt = val)
+
+    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], type(val).__name__))
+
+
+
 
 # "op_name: (func, arg_range_start, arg_range_end),
 operations = {
@@ -356,4 +376,5 @@ operations = {
     'peek': (peek, 2, 3),
     #'mark': (mark, 1, 1),
     'cout': (cout, 1, 1),
+    'halt': (halt, 0, 1),
 }

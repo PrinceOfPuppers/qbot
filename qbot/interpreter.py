@@ -136,8 +136,40 @@ def runtime(localNameSpace, lines, startLine = 0, endLine = -1):
             err.raiseFormattedError(err.customNumArgumentsError(lines, lineNum, tokens[0], numArgs, argRangeStart, argRangeEnd))
 
         ret:OpReturn = op(localNameSpace, lines, lineNum, tokens)
-        # handle jumps
         if ret is None:
+            continue
+
+        # handle halts
+        if isinstance(ret.halt, bool) and ret.halt:
+            break
+        if isinstance(ret.halt, ProbVal):
+            assert ret.joinLineNum is None
+            assert ret.jumpLineNum is None
+            assert len(ret.halt.probs) == 2
+            # duplicate localNameSpace and call runtime on each value
+
+            haltBranchProb     = ret.halt.probs[0] if ret.halt.values[0] else ret.halt.probs[1]
+            continueBranchProb = ret.halt.probs[0] if not ret.halt.values[0] else ret.halt.probs[1]
+
+            print(f">>> ProbVal halt condition encountered (line: {lineNum}): \n" \
+                  f"halt branch:\n" \
+                  f"    prob: {haltBranchProb} ({haltBranchProb*100}%)\n" \
+                  f"continue branch:\n" \
+                  f"    prob: {continueBranchProb} ({continueBranchProb*100}%)\n"
+            )
+
+            resetUpdates(localNameSpace)
+
+            print(f">>> taking continue branch")
+            newLocalNameSpace = localNameSpace.copy()
+            runtime(newLocalNameSpace, lines, lineNum + 1)
+
+            print(f">>> merging halt and continue branch")
+            localNameSpace = collapseNamespaces(continueBranchProb, newLocalNameSpace, haltBranchProb, localNameSpace)
+            break
+
+        # handle jumps
+        if ret.jumpLineNum is None:
             continue
         if isinstance(ret.jumpLineNum, int):
             lineNum = ret.jumpLineNum - 1
@@ -154,7 +186,7 @@ def runtime(localNameSpace, lines, startLine = 0, endLine = -1):
 
             joinLine = ret.joinLineNum
 
-            print(f">>> ProbVal jump condition encountered: \n" \
+            print(f">>> ProbVal jump condition encountered (line: {lineNum}): \n" \
                   f"branch 1:\n" \
                   f"    prob: {branch1Prob} ({branch1Prob*100}%)\n" \
                   f"    line: {branch1Line}\n" \
@@ -175,7 +207,7 @@ def runtime(localNameSpace, lines, startLine = 0, endLine = -1):
 
             localNameSpace = collapseNamespaces(branch1Prob, newLocalNameSpace, branch2Prob, localNameSpace)
 
-            lineNum = branch2Line - 1
+            lineNum = joinLine - 1
             continue
 
 def executeTxt(text: str):
