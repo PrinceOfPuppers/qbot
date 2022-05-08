@@ -7,6 +7,8 @@ def printBits(x, numBits):
     print(format(x, fmt))
     
 def log2(x):
+    if x == 0: # matrices of zero width have zero qubits
+        return 0
     return frexp(x)[1] - 1
 
 def nthRootsOfUnity(n):
@@ -23,6 +25,8 @@ def ensureSquare(array: np.ndarray):
     '''
     Throws Error if not square array
     '''
+    if (array.size == 0):
+        return 0
     if(array.ndim!=2):
         raise Exception("array must be 2 dimensional")
     shape = array.shape

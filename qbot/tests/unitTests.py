@@ -6,6 +6,7 @@ from qbot.evaluation import globalNameSpace
 from qbot.interpreter import executeTxt
 import qbot.density as density
 import qbot.basis as basis
+import qbot.measurement as meas
 
 ################################################################
 # NOTE: all static control gates are only used for unittesting #
@@ -233,6 +234,63 @@ class testPartialTrace(unittest.TestCase):
         self.assertTrue(np.array_equal(state, solution))
 
 
+class testMeasurment(unittest.TestCase):
+    def test_interweaveDensities(self):
+        systemA = basis.computation[0]
+        systemB = density.tensorProd(basis.hadamard[0], basis.hadamard[1])
+        result = density.interweaveDensities(systemA, systemB, [1])
+        expectedState = density.tensorProd(basis.hadamard[0], basis.computation[0], basis.hadamard[1])
+        self.assertTrue(np.allclose(result, expectedState))
+
+    def test_computationComputation1(self):
+        measurementResult = meas.measureArbitraryMultiState(basis.computation[0], basis.computation,[0])
+        self.assertListEqual(measurementResult.probs,[1.0,0])
+        self.assertTrue(np.allclose(measurementResult.newState, basis.computation[0]))
+
+    def test_computationComputation2(self):
+        state = density.ketsToDensity(basis.computation.kets,[0.5,0.5])
+        measurementResult = meas.measureArbitraryMultiState(state, basis.computation)
+        self.assertListEqual(measurementResult.probs,[0.5,0.5])
+        self.assertTrue(np.allclose(measurementResult.newState, state))
+
+    def test_hadamardComputation(self):
+        measurementResult = meas.measureArbitraryMultiState(basis.hadamard[0], basis.computation,[0])
+        self.assertListEqual(measurementResult.probs,[0.5,0.5])
+
+    def test_bellBell(self):
+        measurementResult = meas.measureArbitraryMultiState(basis.bell[0], basis.bell)
+        self.assertListEqual(measurementResult.probs,[1.0,0,0,0])
+
+    def test_measureArbitrary1(self):
+        state = density.ketsToDensity([basis.bell.kets[0]])
+        measurementResult = meas.measureArbitraryMultiState(state, basis.hadamard, [0])
+        self.assertListEqual(measurementResult.probs,[0.5,0.5])
+    
+    def test_measureArbitrary2(self):
+        state = basis.bell[0]
+        measurementResult = meas.measureArbitraryMultiState(state, basis.bell, [1,0])
+        self.assertListEqual(measurementResult.probs,[1.0,0,0,0])
+
+    def test_measureArbitrary3(self):
+        state = basis.bell[0]
+        measurementResult = meas.measureArbitraryMultiState(state, basis.hadamard, [1])
+        self.assertListEqual(measurementResult.probs,[0.5, 0.5])
+    
+    def test_measureArbitrary4(self):
+        state = density.ketsToDensity([
+                np.array([0,1,0,0,0,0,0,0],dtype = complex),
+            ]
+        )
+        measurementResult = meas.measureArbitraryMultiState(state, basis.computation, [1, 2])
+        self.assertListEqual(measurementResult.probs,[0, 1, 0, 0])
+
+    def test_measureArbitrary5(self):
+        state = density.ketsToDensity([
+                np.array([0,0,1,0,0,0,0,0],dtype = complex),
+            ]
+        )
+        measurementResult = meas.measureArbitraryMultiState(state, basis.computation, [0, 2])
+        self.assertListEqual(measurementResult.probs,[1, 0, 0, 0])
 
 
 class testOperations(unittest.TestCase):
@@ -427,84 +485,16 @@ class testOperations(unittest.TestCase):
         self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
 
 
-#class testMeasurement(unittest.TestCase):
-#    def test_computationComputation1(self):
-#        state = density.ketsToDensity([basis.computation.kets[0]])
-#        measurementResult = density.measureTopNQubits(state,basis.computation.density,1)
-#        self.assertListEqual(measurementResult.probs,[1.0,0])
-#
-#    def test_computationComputation2(self):
-#        state = density.ketsToDensity(basis.computation.kets,[0.5,0.5])
-#        measurementResult = density.measureTopNQubits(state,basis.computation.density,1)
-#        self.assertListEqual(measurementResult.probs,[0.5,0.5])
-#
-#    def test_hadamardComputation(self):
-#        state = density.ketsToDensity([basis.hadamard.kets[0]])
-#        measurementResult = density.measureTopNQubits(state,basis.computation.density,1)
-#        self.assertListEqual(measurementResult.probs,[0.5,0.5])
-#
-#    def test_bellBell(self):
-#        state = density.ketsToDensity([basis.bell.kets[0]])
-#        measurementResult = density.measureTopNQubits(state,basis.bell.density,2)
-#        self.assertListEqual(measurementResult.probs,[1.0,0,0,0])
-#
-#    def test_measureArbitrary1(self):
-#        state = density.ketsToDensity([basis.bell.kets[0]])
-#        measurementResult = density.measureArbitrary(state, basis.hadamard.density, [0])
-#        self.assertListEqual(measurementResult.probs,[0.5,0.5])
-#    
-#    def test_measureArbitrary2(self):
-#        state = density.ketsToDensity([basis.bell.kets[0]])
-#        measurementResult = density.measureArbitrary(state, basis.bell.density, [1,0])
-#        self.assertListEqual(measurementResult.probs,[1.0,0,0,0])
-#
-#    def test_measureArbitrary3(self):
-#        state = density.ketsToDensity([basis.bell.kets[0]])
-#        measurementResult = density.measureArbitrary(state, basis.hadamard.density, [1])
-#        self.assertListEqual(measurementResult.probs,[0.5, 0.5])
-#    
-#    def test_measureArbitrary4(self):
-#        state = density.ketsToDensity([
-#                np.array([0,1,0,0,0,0,0,0],dtype = complex),
-#            ]
-#        )
-#        measurementResult = density.measureArbitrary(state, basis.computation2D.density, [1, 2])
-#        self.assertListEqual(measurementResult.probs,[0, 1, 0, 0])
-#
-#    def test_measureArbitrary5(self):
-#        state = density.ketsToDensity([
-#                np.array([0,0,1,0,0,0,0,0],dtype = complex),
-#            ]
-#        )
-#        measurementResult = density.measureArbitrary(state, basis.computation2D.density, [0, 2])
-#        self.assertListEqual(measurementResult.probs,[1, 0, 0, 0])
-
-    # def test_removeFirstNQubits1(self):
-    #     rmGate = gates.genRemoveFirstNQubitsGate(3,2)
-    #     ket = np.array([1,0,0,0,0,0,0,0], dtype = complex)
-    #     correctResult = np.array([1,0],dtype = complex)
-
-    #     areEqual = np.array_equal(correctResult, rmGate.dot(ket))
-    #     self.assertTrue(areEqual)
-
-    # def test_removeFirstNQubits2(self):
-    #     rmGate = gates.genRemoveFirstNQubitsGate(3,2)
-    #     ket = np.array([0,0,0,0,0,0,0,1], dtype = complex)
-    #     correctResult = np.array([0,1],dtype = complex)
-    #     generatedResult = rmGate.dot(ket)
-    #     areEqual = np.array_equal(correctResult, generatedResult)
-    #     self.assertTrue(areEqual)
-    
-    # def test_removeFirstNQubitsDensity1(self):
-    #     rmGate = gates.genRemoveFirstNQubitsGate(2,1)
-    #     bellDensity = basis.bell.density[0]
-    #     state = rmGate @ bellDensity @ rmGate.T
-    #     print(bellDensity.shape,rmGate.shape)
-    #     print("\n",density.densityToStateEnsable(state))
-    #     # generatedResult = rmGate.dot(ket)
-    #     # areEqual = np.array_equal(correctResult, generatedResult)
-    #     # self.assertTrue(areEqual)
-
+    def test_meas1(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorExp(comp[0], 3)
+            meas x; comp ; 1
+            '''
+        )
+        expectedState = density.tensorExp(basis.computation[0], 3)
+        self.assertTrue(localNameSpace['x'].probs == [1, 0])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
 
 if __name__ == "__main__":
     unittest.main()

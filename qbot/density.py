@@ -157,7 +157,7 @@ def interweaveDensities(systemADensity: np.ndarray, systemBDensity: np.ndarray, 
     newSystemAQubits.sort()
     
     if newSystemAQubits[0] < 0 or newSystemAQubits[-1] > numQubits-1:
-        raise IndexError()
+        raise IndexError(newSystemAQubits, numQubits, '\n', systemADensity, '\n', systemBDensity, '\n', systemANumQubits, systemBNumQubits)
 
     if len(newSystemAQubits) < systemANumQubits:
         raise ValueError()
@@ -184,7 +184,7 @@ def interweaveDensities(systemADensity: np.ndarray, systemBDensity: np.ndarray, 
             res |= ((mask & state)!= 0) << (numQubits - 1 - systemBIndex)
         return res
 
-    swapGate = gates.genArbitrarySwap(systemASize + systemBSize, stateMap)
+    swapGate = gates.genArbitrarySwap(2**(systemANumQubits + systemBNumQubits), stateMap)
 
     swappedDensity = swapGate @ tensorProd(systemADensity, systemBDensity) @ swapGate.conj().T
     return swappedDensity

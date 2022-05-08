@@ -125,10 +125,10 @@ def measureArbitraryMultiState(state: np.ndarray, basis: Basis, toMeasure = None
 
     if toMeasure is None or len(toMeasure) == numQubits:
         systemA = state
-        systemB = np.ndarray([], dtype=complex)
+        systemB = np.array([], dtype=complex)
+
     else:
         systemA, systemB = partialTraceArbitrary(state, numQubits, toMeasure)
-
 
     numTensProd = numTargets // basisQubitSize
 
@@ -150,5 +150,7 @@ def measureArbitraryMultiState(state: np.ndarray, basis: Basis, toMeasure = None
         probs[i] /= s
     
     if returnState:
+        if toMeasure is None:
+            return MeasurementResult(systemA, probs, basisStates, basisSymbols, systemA)
         return MeasurementResult(systemA, probs, basisStates, basisSymbols, interweaveDensities(systemA, systemB, toMeasure))
     return MeasurementResult(systemA, probs, basisStates, basisSymbols)
