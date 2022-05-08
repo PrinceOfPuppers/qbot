@@ -155,3 +155,4 @@ def measureArbitraryMultiState(state: np.ndarray, basis: Basis, toMeasure = None
             return MeasurementResult(systemA, probs, basisStates, basisSymbols, measured)
         return MeasurementResult(systemA, probs, basisStates, basisSymbols, interweaveDensities(measured, systemB, toMeasure))
     return MeasurementResult(systemA, probs, basisStates, basisSymbols)
+

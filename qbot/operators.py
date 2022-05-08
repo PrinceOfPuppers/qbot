@@ -378,3 +378,4 @@ operations = {
     'cout': (cout, 1, 1),
     'halt': (halt, 0, 1),
 }
+

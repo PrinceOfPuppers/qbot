@@ -69,3 +69,4 @@ def customSizeError(lines, lineNum, str):
 
 def pythonError(lines, lineNum, e: Exception):
     return formatError(lines, lineNum, e.__class__.__name__, str(e))
+

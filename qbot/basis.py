@@ -74,3 +74,4 @@ bell = Basis(
 )
 
 allBasis = [computation, hadamard, bell]
+

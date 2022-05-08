@@ -43,3 +43,4 @@ setuptools.setup(
         'console_scripts': ['qbot = qbot:main'],
     },
 )
+

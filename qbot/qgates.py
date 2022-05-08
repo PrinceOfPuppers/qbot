@@ -362,3 +362,4 @@ if __name__ == "__main__":
 
     for i in range(0,hilbertDim):
         print(f"{i:04b}",f"{up(i):04b}",f"{down(i):04b}",up(down(i))==i,down(up(i))==i )
+
