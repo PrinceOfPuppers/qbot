@@ -103,10 +103,11 @@ def ensureContainer(lines, lineNum, val, requiredType = int):
 
 
 # operations
+# MARK: removed probval control flow
 class OpReturnVal:
-    jumpLineNum: Union[int, ProbVal, None]
+    jumpLineNum: Union[int, None]#, ProbVal]
     joinLineNum: Union[int, None]
-    halt: Union[bool, ProbVal]
+    halt: Union[bool]#, ProbVal]
     def __init__(self, jumpLineNum = None, joinLineNum = None, halt = False):
         self.jumpLineNum = jumpLineNum
         self.joinLineNum = joinLineNum
@@ -189,27 +190,28 @@ def cjmp(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     markLineNum = getMarkLineNum(localNameSpace, lines, lineNum, tokens[1])
     cond = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
     if isinstance(cond, ProbVal):
-        if not isinstance(cond.instance(), bool):
-            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], cond.typeString()))
+        # MARK: removed probval control flow
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool'], cond.typeString()))
+        #if not isinstance(cond.instance(), bool):
+        #    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], cond.typeString()))
+        #if cond.values[0]:
+        #    trueProb = cond.probs[0]
+        #    falseProb = cond.probs[1]
 
-        if cond.values[0]:
-            trueProb = cond.probs[0]
-            falseProb = cond.probs[1]
+        #    assert not cond.values[1]
+        #else:
+        #    trueProb = cond.probs[1]
+        #    falseProb = cond.probs[0]
 
-            assert not cond.values[1]
-        else:
-            trueProb = cond.probs[1]
-            falseProb = cond.probs[0]
+        #    assert not cond.values[0]
+        #    assert cond.values[1]
 
-            assert not cond.values[0]
-            assert cond.values[1]
+        #if not len(tokens) == 4:
+        #    err.raiseFormattedError(err.customProbValCjmpError(lines, lineNum))
+        #joinLineNum = getMarkLineNum(localNameSpace, lines, lineNum, tokens[3])
 
-        if not len(tokens) == 4:
-            err.raiseFormattedError(err.customProbValCjmpError(lines, lineNum))
-        joinLineNum = getMarkLineNum(localNameSpace, lines, lineNum, tokens[3])
-
-        jumpLineNum = ProbVal.fromUnzipped([trueProb, falseProb], [markLineNum, lineNum + 1])
-        return OpReturnVal(jumpLineNum, joinLineNum)
+        #jumpLineNum = ProbVal.fromUnzipped([trueProb, falseProb], [markLineNum, lineNum + 1])
+        #return OpReturnVal(jumpLineNum, joinLineNum)
 
     elif isinstance(cond, bool):
         if cond:
@@ -217,7 +219,9 @@ def cjmp(localNameSpace, lines, lineNum, tokens) -> OpReturn:
         return
 
     else:
-        err.raiseFormattedError( err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], type(cond).__name__) )
+        # MARK: removed probval control flow
+        err.raiseFormattedError( err.customTypeError(lines, lineNum, ['bool'], type(cond).__name__) )
+        #err.raiseFormattedError( err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], type(cond).__name__) )
 
 
 def qjmp(localNameSpace, lines, lineNum, tokens) -> OpReturn:
@@ -356,12 +360,16 @@ def halt(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     if isinstance(val, bool):
         return OpReturnVal(halt = val)
 
+    # MARK: removed probval control flow
     if isinstance(val, ProbVal):
-        if not isinstance(val.instance(), bool):
-            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], val.typeString()))
-        return OpReturnVal(halt = val)
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool'], val.typeString()))
+    err.raiseFormattedError( err.customTypeError(lines, lineNum, ['bool'], type(val).__name__) )
+    #if isinstance(val, ProbVal):
+    #    if not isinstance(val.instance(), bool):
+    #        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], val.typeString()))
+    #    return OpReturnVal(halt = val)
 
-    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], type(val).__name__))
+    #err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], type(val).__name__))
 
 
 

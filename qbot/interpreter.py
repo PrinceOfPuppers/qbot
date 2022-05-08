@@ -4,64 +4,66 @@ from qbot.probVal import ProbVal
 import qbot.errors as err
 from qbot.operators import operations, OpReturn
 
-def resetUpdates(localNameSpace):
-    for key in localNameSpace.keys():
-        if key.startswith('__updated_'):
-            localNameSpace[key] = False
 
-def collapseNamespaces(p1, n1, p2, n2) -> dict:
-    '''merges n1 changes into n2 and returns n2'''
-    # note the keys of newNameSpace are a superset of oldNameSpace (keys cannot be removed)
-
-    for n1Key in n1.keys():
-        if n1Key.startswith('__'):
-            continue
-
-        isUpdatedStr = f'__updated_{n1Key}'
-        if not n1[isUpdatedStr]:
-            continue
-
-
-        isQstr = f'__is_q_{n1Key}'
-
-
-        # value will be handled
-        n2[isUpdatedStr] = False
-
-        if n1Key in n2:
-            # either existing key or key was added in both branches since split
-            if n1[isQstr] and n2[isQstr]:
-                density.densityEnsambleToDensity([p1, p2], [n1[n1Key], n2[n1Key]])
-                continue
-
-            n2[n1Key] = ProbVal.fromUnzipped([p1, p2], [n1[n1Key], n2[n1Key]])
-            n2[isQstr] = False
-            continue
-
-        # key was added in n1 branch, does not exist in n2
-        n2[n1Key] = ProbVal.fromUnzipped([p1, p2], [n1[n1Key], None])
-        n2[isQstr] = False
-        continue
-
-    # we must now handle keys which where updated/added exclusivly in n2's branch
-    for n2Key in n2.keys():
-        if n2Key.startswith('__'):
-            continue
-
-        isUpdatedStr = f'__updated_{n2Key}'
-
-        # skip all keys not updated on n2's branch, or handled by first loop
-        if not n2[isUpdatedStr]:
-            continue
-
-        # value will be handled
-        n2[isUpdatedStr] = False
-
-        # key was added in n2 branch, does not exist in n1
-        n2[n2Key] = ProbVal.fromUnzipped([p1, p2], [None, n2[n2Key]])
-        n2[isQstr] = False
-
-    return n2
+# MARK: removed probval control flow
+#def resetUpdates(localNameSpace):
+#    for key in localNameSpace.keys():
+#        if key.startswith('__updated_'):
+#            localNameSpace[key] = False
+#
+#def collapseNamespaces(p1, n1, p2, n2) -> dict:
+#    '''merges n1 changes into n2 and returns n2'''
+#    # note the keys of newNameSpace are a superset of oldNameSpace (keys cannot be removed)
+#
+#    for n1Key in n1.keys():
+#        if n1Key.startswith('__'):
+#            continue
+#
+#        isUpdatedStr = f'__updated_{n1Key}'
+#        if not n1[isUpdatedStr]:
+#            continue
+#
+#
+#        isQstr = f'__is_q_{n1Key}'
+#
+#
+#        # value will be handled
+#        n2[isUpdatedStr] = False
+#
+#        if n1Key in n2:
+#            # either existing key or key was added in both branches since split
+#            if n1[isQstr] and n2[isQstr]:
+#                density.densityEnsambleToDensity([p1, p2], [n1[n1Key], n2[n1Key]])
+#                continue
+#
+#            n2[n1Key] = ProbVal.fromUnzipped([p1, p2], [n1[n1Key], n2[n1Key]])
+#            n2[isQstr] = False
+#            continue
+#
+#        # key was added in n1 branch, does not exist in n2
+#        n2[n1Key] = ProbVal.fromUnzipped([p1, p2], [n1[n1Key], None])
+#        n2[isQstr] = False
+#        continue
+#
+#    # we must now handle keys which where updated/added exclusivly in n2's branch
+#    for n2Key in n2.keys():
+#        if n2Key.startswith('__'):
+#            continue
+#
+#        isUpdatedStr = f'__updated_{n2Key}'
+#
+#        # skip all keys not updated on n2's branch, or handled by first loop
+#        if not n2[isUpdatedStr]:
+#            continue
+#
+#        # value will be handled
+#        n2[isUpdatedStr] = False
+#
+#        # key was added in n2 branch, does not exist in n1
+#        n2[n2Key] = ProbVal.fromUnzipped([p1, p2], [None, n2[n2Key]])
+#        n2[isQstr] = False
+#
+#    return n2
 
 
 
@@ -142,31 +144,33 @@ def runtime(localNameSpace, lines, startLine = 0, endLine = -1):
         # handle halts
         if isinstance(ret.halt, bool) and ret.halt:
             break
-        if isinstance(ret.halt, ProbVal):
-            assert ret.joinLineNum is None
-            assert ret.jumpLineNum is None
-            assert len(ret.halt.probs) == 2
-            # duplicate localNameSpace and call runtime on each value
 
-            haltBranchProb     = ret.halt.probs[0] if ret.halt.values[0] else ret.halt.probs[1]
-            continueBranchProb = ret.halt.probs[0] if not ret.halt.values[0] else ret.halt.probs[1]
+        # MARK: removed probval control flow
+        #if isinstance(ret.halt, ProbVal):
+        #    assert ret.joinLineNum is None
+        #    assert ret.jumpLineNum is None
+        #    assert len(ret.halt.probs) == 2
+        #    # duplicate localNameSpace and call runtime on each value
 
-            print(f">>> ProbVal halt condition encountered (line: {lineNum}): \n" \
-                  f"halt branch:\n" \
-                  f"    prob: {haltBranchProb} ({haltBranchProb*100}%)\n" \
-                  f"continue branch:\n" \
-                  f"    prob: {continueBranchProb} ({continueBranchProb*100}%)\n"
-            )
+        #    haltBranchProb     = ret.halt.probs[0] if ret.halt.values[0] else ret.halt.probs[1]
+        #    continueBranchProb = ret.halt.probs[0] if not ret.halt.values[0] else ret.halt.probs[1]
 
-            resetUpdates(localNameSpace)
+        #    print(f">>> ProbVal halt condition encountered (line: {lineNum}): \n" \
+        #          f"halt branch:\n" \
+        #          f"    prob: {haltBranchProb} ({haltBranchProb*100}%)\n" \
+        #          f"continue branch:\n" \
+        #          f"    prob: {continueBranchProb} ({continueBranchProb*100}%)\n"
+        #    )
 
-            print(f">>> taking continue branch")
-            newLocalNameSpace = localNameSpace.copy()
-            runtime(newLocalNameSpace, lines, lineNum + 1)
+        #    resetUpdates(localNameSpace)
 
-            print(f">>> merging halt and continue branch")
-            localNameSpace = collapseNamespaces(continueBranchProb, newLocalNameSpace, haltBranchProb, localNameSpace)
-            break
+        #    print(f">>> taking continue branch")
+        #    newLocalNameSpace = localNameSpace.copy()
+        #    runtime(newLocalNameSpace, lines, lineNum + 1)
+
+        #    print(f">>> merging halt and continue branch")
+        #    localNameSpace = collapseNamespaces(continueBranchProb, newLocalNameSpace, haltBranchProb, localNameSpace)
+        #    break
 
         # handle jumps
         if ret.jumpLineNum is None:
@@ -174,41 +178,41 @@ def runtime(localNameSpace, lines, startLine = 0, endLine = -1):
         if isinstance(ret.jumpLineNum, int):
             lineNum = ret.jumpLineNum - 1
             continue
-        if isinstance(ret.jumpLineNum, ProbVal):
-            assert ret.joinLineNum is not None
-            assert len(ret.jumpLineNum.probs) == 2
-            # duplicate localNameSpace and call runtime on each value
-            branch1Line = ret.jumpLineNum.values[0]
-            branch2Line = ret.jumpLineNum.values[1]
+        #if isinstance(ret.jumpLineNum, ProbVal):
+        #    assert ret.joinLineNum is not None
+        #    assert len(ret.jumpLineNum.probs) == 2
+        #    # duplicate localNameSpace and call runtime on each value
+        #    branch1Line = ret.jumpLineNum.values[0]
+        #    branch2Line = ret.jumpLineNum.values[1]
 
-            branch1Prob = ret.jumpLineNum.probs[0]
-            branch2Prob = ret.jumpLineNum.probs[1]
+        #    branch1Prob = ret.jumpLineNum.probs[0]
+        #    branch2Prob = ret.jumpLineNum.probs[1]
 
-            joinLine = ret.joinLineNum
+        #    joinLine = ret.joinLineNum
 
-            print(f">>> ProbVal jump condition encountered (line: {lineNum}): \n" \
-                  f"branch 1:\n" \
-                  f"    prob: {branch1Prob} ({branch1Prob*100}%)\n" \
-                  f"    line: {branch1Line}\n" \
-                  f"branch 2:\n" \
-                  f"    prob: {branch2Prob} ({branch2Prob*100}%)\n" \
-                  f"    line: {branch2Line}")
+        #    print(f">>> ProbVal jump condition encountered (line: {lineNum}): \n" \
+        #          f"branch 1:\n" \
+        #          f"    prob: {branch1Prob} ({branch1Prob*100}%)\n" \
+        #          f"    line: {branch1Line}\n" \
+        #          f"branch 2:\n" \
+        #          f"    prob: {branch2Prob} ({branch2Prob*100}%)\n" \
+        #          f"    line: {branch2Line}")
 
 
-            resetUpdates(localNameSpace)
+        #    resetUpdates(localNameSpace)
 
-            print(f">>> taking branch 1")
-            newLocalNameSpace = localNameSpace.copy()
-            runtime(newLocalNameSpace, lines, branch1Line, joinLine + 1)
+        #    print(f">>> taking branch 1")
+        #    newLocalNameSpace = localNameSpace.copy()
+        #    runtime(newLocalNameSpace, lines, branch1Line, joinLine + 1)
 
-            print(f">>> taking branch 2")
-            runtime(localNameSpace, lines, branch2Line, joinLine + 1)
-            print(f">>> branches met on line {branch2Line}, merging them")
+        #    print(f">>> taking branch 2")
+        #    runtime(localNameSpace, lines, branch2Line, joinLine + 1)
+        #    print(f">>> branches met on line {branch2Line}, merging them")
 
-            localNameSpace = collapseNamespaces(branch1Prob, newLocalNameSpace, branch2Prob, localNameSpace)
+        #    localNameSpace = collapseNamespaces(branch1Prob, newLocalNameSpace, branch2Prob, localNameSpace)
 
-            lineNum = joinLine - 1
-            continue
+        #    lineNum = joinLine - 1
+        #    continue
 
 def executeTxt(text: str):
     lines = text.splitlines()

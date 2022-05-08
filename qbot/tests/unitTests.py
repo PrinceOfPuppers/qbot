@@ -592,33 +592,34 @@ class testOperations(unittest.TestCase):
         )
         self.assertEqual(localNameSpace['x'], "hello")
 
-    def test_halt4(self):
-        localNameSpace = executeTxt(
-            '''
-            cdef x ; 1234
-            halt ProbVal([0.25, 0.75], [True, False])
-            cdef x ; "hello"
-            '''
-        )
-        val = localNameSpace['x']
-        correctVal = ProbVal([0.25, 0.75], [1234, "hello"])
-        self.assertTrue(isinstance(val, ProbVal))
-        self.assertTrue(val.isEquivalent(correctVal))
+    # MARK: removed probval control flow
+    # def test_halt4(self):
+    #     localNameSpace = executeTxt(
+    #         '''
+    #         cdef x ; 1234
+    #         halt ProbVal([0.25, 0.75], [True, False])
+    #         cdef x ; "hello"
+    #         '''
+    #     )
+    #     val = localNameSpace['x']
+    #     correctVal = ProbVal([0.25, 0.75], [1234, "hello"])
+    #     self.assertTrue(isinstance(val, ProbVal))
+    #     self.assertTrue(val.isEquivalent(correctVal))
 
-    def test_halt5(self):
-        localNameSpace = executeTxt(
-            '''
-            cdef x ; ProbVal([0.25, 0.75], [True, False])
-            halt x
-            halt not x
-            cdef x ; "shouldNeverReach"
-            '''
-        )
-        val = localNameSpace['x']
-        self.assertTrue(isinstance(val, ProbVal))
-        for value in val.values:
-            if value == "shouldNeverReach":
-                self.fail()
+    # def test_halt5(self):
+    #     localNameSpace = executeTxt(
+    #         '''
+    #         cdef x ; ProbVal([0.25, 0.75], [True, False])
+    #         halt x
+    #         halt not x
+    #         cdef x ; "shouldNeverReach"
+    #         '''
+    #     )
+    #     val = localNameSpace['x']
+    #     self.assertTrue(isinstance(val, ProbVal))
+    #     for value in val.values:
+    #         if value == "shouldNeverReach":
+    #             self.fail()
 
     def test_jump1(self):
         localNameSpace = executeTxt(
@@ -676,30 +677,32 @@ class testOperations(unittest.TestCase):
         )
         self.assertEqual(localNameSpace['x'], 2)
 
-    def test_cjmp4(self):
-        localNameSpace = executeTxt(
-            '''
-            cdef x ; ProbVal([0.5, 0.5], [0, 1])
-            mark inc
-            cdef x ; x + 1
-            cjmp inc ; x < 2 ; end
-            mark end
-            '''
-        )
-        self.assertEqual(localNameSpace['x'], 2)
+    # MARK: removed probval control flow
+    # def test_cjmp4(self):
+    #     localNameSpace = executeTxt(
+    #         '''
+    #         cdef x ; ProbVal([0.5, 0.5], [0, 1])
+    #         mark inc
+    #         cdef x ; x + 1
+    #         cjmp inc ; x < 2 ; end
+    #         mark end
+    #         '''
+    #     )
+    #     self.assertEqual(localNameSpace['x'], 2)
 
-    def test_cjmp5(self):
-        localNameSpace = executeTxt(
-            '''
-            cdef x ; ProbVal([0.5, 0.5], [0, 1])
-            mark inc
-            cdef x ; x + 1
-            cjmp inc ; x < 2 or x == 1; end
-            mark end
-            '''
-        )
-        print(localNameSpace['x'])
-        self.assertTrue( localNameSpace['x'].isEquivalent(ProbVal([0.5, 0.5], [1, 2])) )
+    # def test_cjmp5(self):
+    #     localNameSpace = executeTxt(
+    #         '''
+    #         cdef x ; ProbVal([0.5, 0.5], [0, 1])
+    #         mark inc
+    #         cdef x ; x + 1
+    #         cjmp inc ; x < 2 or x == 1; end
+    #         mark end
+    #         '''
+    #     )
+    #     print(localNameSpace['x'])
+    #     self.assertTrue( localNameSpace['x'].isEquivalent(ProbVal([0.5, 0.5], [1, 2])) )
+
 if __name__ == "__main__":
     unittest.main()
 
