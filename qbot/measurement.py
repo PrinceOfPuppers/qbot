@@ -150,7 +150,8 @@ def measureArbitraryMultiState(state: np.ndarray, basis: Basis, toMeasure = None
         probs[i] /= s
     
     if returnState:
+        measured = densityEnsambleToDensity(probs, basisStates)
         if toMeasure is None:
-            return MeasurementResult(systemA, probs, basisStates, basisSymbols, systemA)
-        return MeasurementResult(systemA, probs, basisStates, basisSymbols, interweaveDensities(systemA, systemB, toMeasure))
+            return MeasurementResult(systemA, probs, basisStates, basisSymbols, measured)
+        return MeasurementResult(systemA, probs, basisStates, basisSymbols, interweaveDensities(measured, systemB, toMeasure))
     return MeasurementResult(systemA, probs, basisStates, basisSymbols)

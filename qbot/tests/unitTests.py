@@ -256,25 +256,31 @@ class testMeasurment(unittest.TestCase):
     def test_hadamardComputation(self):
         measurementResult = meas.measureArbitraryMultiState(basis.hadamard[0], basis.computation,[0])
         self.assertListEqual(measurementResult.probs,[0.5,0.5])
+        self.assertTrue(np.allclose(measurementResult.newState, density.densityEnsambleToDensity([0.5, 0.5], basis.computation.density)))
 
     def test_bellBell(self):
         measurementResult = meas.measureArbitraryMultiState(basis.bell[0], basis.bell)
         self.assertListEqual(measurementResult.probs,[1.0,0,0,0])
+        self.assertTrue(np.allclose(measurementResult.newState, basis.bell[0]))
 
     def test_measureArbitrary1(self):
         state = density.ketsToDensity([basis.bell.kets[0]])
         measurementResult = meas.measureArbitraryMultiState(state, basis.hadamard, [0])
         self.assertListEqual(measurementResult.probs,[0.5,0.5])
+        self.assertTrue(np.allclose( measurementResult.newState, density.tensorExp(density.densityEnsambleToDensity([0.5, 0.5], basis.hadamard.density), 2) ))
     
     def test_measureArbitrary2(self):
         state = basis.bell[0]
         measurementResult = meas.measureArbitraryMultiState(state, basis.bell, [1,0])
         self.assertListEqual(measurementResult.probs,[1.0,0,0,0])
 
+        self.assertTrue(np.allclose(measurementResult.newState, basis.bell[0]))
+
     def test_measureArbitrary3(self):
         state = basis.bell[0]
         measurementResult = meas.measureArbitraryMultiState(state, basis.hadamard, [1])
         self.assertListEqual(measurementResult.probs,[0.5, 0.5])
+        self.assertTrue(np.allclose( measurementResult.newState, density.tensorExp(density.densityEnsambleToDensity([0.5, 0.5], basis.hadamard.density), 2) ))
     
     def test_measureArbitrary4(self):
         state = density.ketsToDensity([
@@ -284,6 +290,8 @@ class testMeasurment(unittest.TestCase):
         measurementResult = meas.measureArbitraryMultiState(state, basis.computation, [1, 2])
         self.assertListEqual(measurementResult.probs,[0, 1, 0, 0])
 
+        self.assertTrue(np.allclose( measurementResult.newState, meas.tensorPermute(3, 1, basis.computation) ))
+
     def test_measureArbitrary5(self):
         state = density.ketsToDensity([
                 np.array([0,0,1,0,0,0,0,0],dtype = complex),
@@ -291,6 +299,7 @@ class testMeasurment(unittest.TestCase):
         )
         measurementResult = meas.measureArbitraryMultiState(state, basis.computation, [0, 2])
         self.assertListEqual(measurementResult.probs,[1, 0, 0, 0])
+        self.assertTrue(np.allclose( measurementResult.newState, meas.tensorPermute(3, 2, basis.computation) ))
 
 
 class testOperations(unittest.TestCase):
