@@ -7,6 +7,7 @@ from qbot.interpreter import executeTxt
 import qbot.density as density
 import qbot.basis as basis
 import qbot.measurement as meas
+from qbot.probVal import ProbVal
 
 ################################################################
 # NOTE: all static control gates are only used for unittesting #
@@ -560,6 +561,53 @@ class testOperations(unittest.TestCase):
         expectedState = density.tensorProd(basis.bell[0], basis.computation[0], basis.hadamard[0])
         self.assertTrue(localNameSpace['x'].probs == [0.25, 0.25, 0.25, 0.25])
         self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_halt1(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 1234
+            halt
+            cdef x ; "hello"
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], 1234)
+
+    def test_halt2(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 1234
+            halt 1 == 1
+            cdef x ; "hello"
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], 1234)
+
+    def test_halt3(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 1234
+            halt False
+            cdef x ; "hello"
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], "hello")
+
+    def test_halt4(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 1234
+            halt ProbVal([0.25, 0.75], [True, False])
+            cdef x ; "hello"
+            '''
+        )
+        val = localNameSpace['x']
+        self.assertTrue(isinstance(val, ProbVal))
+        if val.values[0] == 1234:
+            self.assertListEqual(val.probs, [0.25, 0.75])
+            self.assertListEqual(val.values, [1234, 'hello'])
+        else:
+            self.assertListEqual(val.probs, [0.75, 0.25])
+            self.assertListEqual(val.values, ['hello', 1234])
 
 if __name__ == "__main__":
     unittest.main()
