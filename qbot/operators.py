@@ -35,7 +35,12 @@ def getMarkLineNum(localNameSpace, lines, lineNum, token) -> int:
         except KeyError:
             err.raiseFormattedError(err.customUnknownMarkName(lines, lineNum, token))
 
-    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['str'], type(res).__name__))
+    if isinstance(res, ProbVal):
+        typeStr = res.typeString()
+    else:
+        typeStr = type(res).__name__
+
+    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['str'], typeStr))
 
 
 def convertToDensity(lines, lineNum, val):

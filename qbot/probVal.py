@@ -117,7 +117,7 @@ class ProbVal:
         inst = self.instance()
         if inst is None:
             return f"ProbVal<mixed>"
-        return f"ProbVal<{type(inst)}>"
+        return f"ProbVal<{type(inst).__name__}>"
 
     def instance(self):
         '''used for isinstance checking'''

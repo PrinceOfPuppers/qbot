@@ -609,6 +609,29 @@ class testOperations(unittest.TestCase):
             self.assertListEqual(val.probs, [0.75, 0.25])
             self.assertListEqual(val.values, ['hello', 1234])
 
+    def test_jump1(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 1234
+            jump end
+            cdef x ; "hello"
+            mark end
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], 1234)
+
+    def test_jump2(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 0
+            mark beforeHalt
+            halt x == 2
+            cdef x ; x + 1
+            jump beforeHalt
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], 2)
+
 if __name__ == "__main__":
     unittest.main()
 
