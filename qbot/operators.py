@@ -8,14 +8,18 @@ import qbot.density as density
 import qbot.qgates as gates
 import qbot.errors as err
 
-from typing import Union
+from typing import Union, Callable
 
 
-
-def hilbertSpaceNumQubits(hilbertSpace):
-    if len(hilbertSpace.shape) == 0 or hilbertSpace.size == 0:
+def hilbertSpaceNumQubits(state):
+    if len(state.shape) == 0 or state.size == 0:
         return 0
-    return int(np.log2(hilbertSpace.shape[0]))
+    return int(np.log2(state.shape[0]))
+
+def hilbertSpaceDim(state):
+    if len(state.shape) == 0 or state.size == 0:
+        return 0
+    return int(state.shape[0])
 
 
 def getVarName(lines, lineNum, token):
@@ -41,6 +45,16 @@ def getMarkLineNum(localNameSpace, lines, lineNum, token) -> int:
         typeStr = type(res).__name__
 
     err.raiseFormattedError(err.customTypeError(lines, lineNum, ['str'], typeStr))
+
+
+def assertProbValType(lines, lineNum, pv, t):
+    if isinstance(pv, t):
+        return
+    if isinstance(pv, ProbVal):
+        if not isinstance(pv.instance(), t):
+            err.raiseFormattedError(err.customTypeError(lines, lineNum, [t.__name__, f"ProbVal<{t.__name__}>"], pv.typeString()))
+        return
+    err.raiseFormattedError(err.customTypeError(lines, lineNum, [t.__name__, f"ProbVal<{t.__name__}>"], type(pv).__name__))
 
 
 def convertToDensity(lines, lineNum, val):
@@ -168,18 +182,12 @@ def disc(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     targets = ensureContainer(lines, lineNum, evaluateWrapper(lines, lineNum, tokens[1], localNameSpace))
 
     if isinstance(targets, ProbVal):
-        targetInst = targets.instance()
-        if isinstance(targetInst, list) or isinstance(targetInst, tuple) or isinstance(targetInst, set):
-            val = funcWrapper(_disc, localNameSpace, lines, lineNum, numQubits, targets)
-            setVal(localNameSpace, lines, lineNum, 'state', convertToDensity(lines, lineNum, val), qset = True)
-            return
-        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], targets.typeString()))
-
-    if isinstance(targets, list) or isinstance(targets, tuple) or isinstance(targets, set):
-        val = _disc(localNameSpace, lines, lineNum, numQubits, targets)
+        val = funcWrapper(_disc, localNameSpace, lines, lineNum, numQubits, targets)
         setVal(localNameSpace, lines, lineNum, 'state', convertToDensity(lines, lineNum, val), qset = True)
         return
-    err.raiseFormattedError(err.customTypeError(lines, lineNum, ['list', 'tuple', 'set'], type(targets).__name__))
+
+    val = _disc(localNameSpace, lines, lineNum, numQubits, targets)
+    setVal(localNameSpace, lines, lineNum, 'state', convertToDensity(lines, lineNum, val), qset = True)
 
 
 def jump(localNameSpace, lines, lineNum, tokens) -> OpReturn:
@@ -262,20 +270,14 @@ def _gate(lines, lineNum, numQubits, contorls, firstTarget, gate):
 
     return gates.genMultiControlledGate(numQubits, contorls, firstTarget, gate)
 
+
 def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
 
     gate = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
 
     firstTarget = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
-
-    if isinstance(firstTarget, int):
-        pass
-    elif isinstance(firstTarget, ProbVal):
-        if not isinstance(firstTarget.instance(), int):
-            err.raiseFormattedError(err.customTypeError(lines, lineNum, ['int'], type(firstTarget).__name__))
-    else:
-        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['int'], type(firstTarget).__name__))
+    assertProbValType(lines, lineNum, firstTarget, int)
 
     # no controls
     if len(tokens) < 4:
@@ -308,7 +310,66 @@ def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 
 
 def perm(localNameSpace, lines, lineNum, tokens) -> OpReturn:
-    raise NotImplementedError()
+    hilbertDim = hilbertSpaceDim(localNameSpace['state'])
+    numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
+
+
+    func = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
+    assertProbValType(lines, lineNum, func, Callable[[int], int])
+
+    try:
+        permGate = funcWrapper( gates.genArbitrarySwap, hilbertDim, func )
+    except Exception as e:
+        err.raiseFormattedError(err.pythonError(lines, lineNum, e))
+
+    try:
+        g = funcWrapper( _gate, lines, lineNum, numQubits, [], 0, permGate )
+
+    except Exception as e:
+        err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
+
+    if isinstance(g, ProbVal):
+        for i in range(len(g.values)):
+            g.values[i] = gates.applyGate(g.values[i], localNameSpace['state'])
+        val = g.toDensityMatrix()
+    elif isinstance(g, np.ndarray):
+        val = gates.applyGate(g, localNameSpace['state'])
+    else:
+        raise Exception("permGate is not array or ProbVal")
+
+    setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
+
+
+def _swap(lines, lineNum, numQubits, qubitA, qubitB):
+    if qubitA < 0 or qubitA >= numQubits:
+        err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', qubitA, numQubits - 1))
+    if qubitB < 0 or qubitB >= numQubits:
+        err.raiseFormattedError(err.customIndexError(lines, lineNum, 'target', qubitB, numQubits - 1))
+
+    return gates.genSwapGate(numQubits, qubitA, qubitB)
+
+def swap(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
+
+    a = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
+    b = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
+    assertProbValType(lines, lineNum, a, int)
+    assertProbValType(lines, lineNum, b, int)
+    try:
+        swapGate = funcWrapper( _swap, numQubits, a, b )
+    except Exception as e:
+        err.raiseFormattedError(err.pythonError(lines, lineNum, e))
+
+    if isinstance(swapGate, ProbVal):
+        for i in range(len(swapGate.values)):
+            swapGate.values[i] = gates.applyGate(swapGate.values[i], localNameSpace['state'])
+        val = swapGate.toDensityMatrix()
+    elif isinstance(swapGate, np.ndarray):
+        val = gates.applyGate(swapGate, localNameSpace['state'])
+    else:
+        raise Exception("swapGate is not array or ProbVal")
+
+    setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
 
 
 def meas(localNameSpace, lines, lineNum, tokens, changeState = True) -> OpReturn:
@@ -327,7 +388,6 @@ def meas(localNameSpace, lines, lineNum, tokens, changeState = True) -> OpReturn
 
             if isinstance(targets, ProbVal):
                 result = funcWrapper(measureArbitraryMultiState, localNameSpace['state'], measBasis, targets, changeState)
-
             else:
                 result = measureArbitraryMultiState(localNameSpace['state'], measBasis, targets, changeState)
 
@@ -390,5 +450,6 @@ operations = {
     #'mark': (mark, 1, 1),
     'cout': (cout, 1, 1),
     'halt': (halt, 0, 1),
+    'swap': (swap, 2, 2),
 }
 
