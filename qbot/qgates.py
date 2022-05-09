@@ -37,16 +37,16 @@ def genSimonsGate(numQubits, f: Callable):
 
 def genXRotGate(theta):
     stheta = np.sin(theta/2)
-    ctheta = np.sin(theta/2)
+    ctheta = np.cos(theta/2)
     return np.array([
-        [   ctheta, -1j*stheta],
-        [1j*stheta,     ctheta]
+        [    ctheta, -1j*stheta],
+        [-1j*stheta,     ctheta]
     ], dtype = complex)
 
 
 def genYRotGate(theta):
     stheta = np.sin(theta/2)
-    ctheta = np.sin(theta/2)
+    ctheta = np.cos(theta/2)
     return np.array([
         [ctheta, -stheta],
         [stheta,  ctheta]
@@ -56,7 +56,7 @@ def genYRotGate(theta):
 def genZRotGate(theta):
     return np.array([
         [np.exp(-1j*theta/2), 0              ],
-        [0,                   np.exp(theta/2)]
+        [0,                   np.exp(1j*theta/2)]
     ], dtype = complex)
 
 
@@ -65,7 +65,7 @@ def genQFT(numQubits):
     size = 2**numQubits
     unityDiv = nthRootsOfUnity(size) / np.sqrt(size)
     qft = np.ones((size,size), dtype = complex)
-    for i in range(1, size):
+    for i in range(0, size):
         for j in range(i, size):
             index = (i*j)%size
             qft[i][j] = unityDiv[index]

@@ -19,8 +19,18 @@ cnot = np.array(
     [
         [1, 0, 0, 0],
         [0, 1, 0, 0],
-        [0 ,0, 0, 1],
-        [0 ,0, 1, 0]
+        [0, 0, 0, 1],
+        [0, 0, 1, 0]
+    ]
+    ,dtype = complex
+)
+
+qft2 = 0.5*np.array(
+    [
+        [1,  1,  1,  1],
+        [1, 1j, -1, -1j],
+        [1, -1,  1, -1],
+        [1,-1j,- 1,  1j]
     ]
     ,dtype = complex
 )
@@ -748,6 +758,23 @@ class testOperations(unittest.TestCase):
    #     )
    #     expectedState = density.tensorProd(basis.computation[1], basis.hadamard[0], basis.computation[0])
    #     self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+class testSpecialGates(unittest.TestCase):
+    def test_qft1(self):
+        self.assertTrue(np.allclose(globalNameSpace['hadamardGate'], gates.genQFT(1)))
+
+    def test_qft2(self):
+        self.assertTrue(np.allclose(qft2, gates.genQFT(2)))
+
+    def test_rotx(self):
+        self.assertTrue(np.allclose(-1j*globalNameSpace['pauliXGate'], gates.genXRotGate(np.pi)))
+
+    def test_roty(self):
+        self.assertTrue(np.allclose(-1j*globalNameSpace['pauliYGate'], gates.genYRotGate(np.pi)))
+
+    def test_rotz(self):
+        self.assertTrue(np.allclose(-1j*globalNameSpace['pauliZGate'], gates.genZRotGate(np.pi)))
+
 
 if __name__ == "__main__":
     unittest.main()
