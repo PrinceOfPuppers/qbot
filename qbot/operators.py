@@ -310,12 +310,13 @@ def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 
 
 def perm(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    raise NotImplementedError("Convert this to using qubit map instead of statemap")
     hilbertDim = hilbertSpaceDim(localNameSpace['state'])
     numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
 
 
     func = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
-    assertProbValType(lines, lineNum, func, Callable[[int], int])
+    assertProbValType(lines, lineNum, func, Callable)
 
     try:
         permGate = funcWrapper( gates.genArbitrarySwap, hilbertDim, func )
@@ -356,7 +357,7 @@ def swap(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     assertProbValType(lines, lineNum, a, int)
     assertProbValType(lines, lineNum, b, int)
     try:
-        swapGate = funcWrapper( _swap, numQubits, a, b )
+        swapGate = funcWrapper( _swap, lines, lineNum, numQubits, a, b )
     except Exception as e:
         err.raiseFormattedError(err.pythonError(lines, lineNum, e))
 
@@ -444,10 +445,9 @@ operations = {
     'cdef': (cdef, 2, 2),
     'qdef': (qdef, 2, 2),
     'gate': (gate, 2, 3),
-    'perm': (perm, 1, 1),
+    #'perm': (perm, 1, 1),
     'meas': (meas, 2, 3),
     'peek': (peek, 2, 3),
-    #'mark': (mark, 1, 1),
     'cout': (cout, 1, 1),
     'halt': (halt, 0, 1),
     'swap': (swap, 2, 2),

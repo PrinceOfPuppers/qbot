@@ -703,6 +703,52 @@ class testOperations(unittest.TestCase):
     #     print(localNameSpace['x'])
     #     self.assertTrue( localNameSpace['x'].isEquivalent(ProbVal([0.5, 0.5], [1, 2])) )
 
+    def test_swap1(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(hada[0], comp[0])
+            swap 0 ; 1
+            '''
+        )
+        self.assertTrue(np.allclose(localNameSpace['state'], density.tensorProd(basis.computation[0], basis.hadamard[0])))
+
+    def test_swap2(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(hada[0], comp[0], comp[1])
+            swap 0 ; ProbVal([0.5, 0.5], [1, 2])
+            '''
+        )
+        expectedState = density.densityEnsambleToDensity(
+                [0.5, 0.5],
+                [
+                    density.tensorProd(basis.computation[0], basis.hadamard[0], basis.computation[1]),
+                    density.tensorProd(basis.computation[1], basis.computation[0], basis.hadamard[0]),
+                ])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+   # def test_perm1(self):
+   #     localNameSpace = executeTxt(
+   #         '''
+   #         qset tensorProd(hada[0], comp[0])
+   #         perm lambda i: (i+1)%2
+   #         '''
+   #     )
+   #     print('\n', localNameSpace['state'])
+   #     print(density.tensorProd(basis.hadamard[0], basis.computation[0]))
+   #     expectedState = density.tensorProd(basis.hadamard[0], basis.computation[0])
+   #     self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+   # def test_perm2(self):
+   #     localNameSpace = executeTxt(
+   #         '''
+   #         qset tensorProd(hada[0], comp[0], comp[1])
+   #         perm lambda i: (i+1)%3
+   #         '''
+   #     )
+   #     expectedState = density.tensorProd(basis.computation[1], basis.hadamard[0], basis.computation[0])
+   #     self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
 if __name__ == "__main__":
     unittest.main()
 
