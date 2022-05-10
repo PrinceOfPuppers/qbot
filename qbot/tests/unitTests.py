@@ -775,6 +775,87 @@ class testSpecialGates(unittest.TestCase):
     def test_rotz(self):
         self.assertTrue(np.allclose(-1j*globalNameSpace['pauliZGate'], gates.genZRotGate(np.pi)))
 
+    def test_simonsGate1(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(comp[0], comp[0])
+            qdef x ; simonsGate(2, lambda x: 1)
+            gate x
+            '''
+        )
+        self.assertTrue(np.allclose(localNameSpace['state'], density.tensorProd(basis.computation[0], basis.computation[1])))
+
+    def test_simonsGate2(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(hada[0], comp[0], comp[0])
+            qdef x ; simonsGate(3, lambda x: x & 0b01)
+            gate x
+            '''
+        )
+        self.assertTrue(np.allclose(localNameSpace['state'], density.tensorProd(basis.hadamard[0], basis.computation[0], basis.computation[0])))
+
+    def test_simonsGate3(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(hada[1], comp[0], comp[0])
+            qdef x ; simonsGate(3, lambda x: x & 0b01)
+            gate x
+            '''
+        )
+        self.assertTrue(np.allclose(localNameSpace['state'], density.tensorProd(basis.hadamard[1], basis.computation[0], basis.computation[0])))
+
+    def test_simonsGate4(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(hada[1], comp[1], comp[0])
+            qdef x ; simonsGate(3, lambda x: x & 0b01)
+            gate x
+            '''
+        )
+        self.assertTrue(np.allclose(localNameSpace['state'], density.tensorProd(basis.hadamard[1], basis.computation[1], basis.computation[1])))
+
+    def test_simonsGate5(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(comp[1], comp[0], comp[0])
+            qdef x ; simonsGate(3, lambda x: (x & 0b10) !=0 )
+            gate x
+            '''
+        )
+        expectedState = density.tensorProd(basis.computation[1], basis.computation[0], basis.computation[1])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_simonsGate6(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(comp[0], comp[0], comp[0])
+            qdef x ; simonsGate(3, lambda x: (x & 0b10) !=0 )
+            gate x
+            '''
+        )
+        expectedState = density.tensorProd(basis.computation[0], basis.computation[0], basis.computation[0])
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+    def test_simonsGate7(self):
+        localNameSpace = executeTxt(
+            '''
+            qset tensorProd(hada[0], comp[0], comp[0])
+            qdef x ; simonsGate(3, lambda x: (x & 0b10) != 0 )
+            gate x
+            '''
+        )
+        comp0 = basis.computation.kets[0]
+        comp1 = basis.computation.kets[1]
+        a=meas.tensorProd(comp0, comp0, comp0)
+        b=meas.tensorProd(comp1, comp0, comp1)
+        state = 2**(-1/2) * (a + b)
+        expectedState = density.ketToDensity(state)
+
+        self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
+
+
+
 
 if __name__ == "__main__":
     unittest.main()

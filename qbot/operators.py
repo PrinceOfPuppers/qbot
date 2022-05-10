@@ -276,8 +276,12 @@ def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 
     gate = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
 
-    firstTarget = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
-    assertProbValType(lines, lineNum, firstTarget, int)
+    # no targets
+    if len(tokens) < 3:
+        firstTarget = 0
+    else:
+        firstTarget = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
+        assertProbValType(lines, lineNum, firstTarget, int)
 
     # no controls
     if len(tokens) < 4:
@@ -383,7 +387,7 @@ def meas(localNameSpace, lines, lineNum, tokens, changeState = True) -> OpReturn
 
     try:
         if len(tokens) < 4:
-            result = measureArbitraryMultiState(localNameSpace['state'], measBasis, changeState)
+            result = measureArbitraryMultiState(localNameSpace['state'], measBasis, None, changeState)
         else:
             targets = ensureContainer(lines, lineNum, evaluateWrapper(lines, lineNum, tokens[3], localNameSpace))
 
@@ -444,7 +448,7 @@ operations = {
     #'qjmp': (qjmp, 2, 2),
     'cdef': (cdef, 2, 2),
     'qdef': (qdef, 2, 2),
-    'gate': (gate, 2, 3),
+    'gate': (gate, 1, 3),
     #'perm': (perm, 1, 1),
     'meas': (meas, 2, 3),
     'peek': (peek, 2, 3),

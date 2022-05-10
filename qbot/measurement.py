@@ -96,6 +96,7 @@ def permuteBasis(numTensProd: int, n: int, basis: Basis):
 
 class MeasurementIndexError(Exception):
     pass
+
 def measureArbitraryMultiState(state: np.ndarray, basis: Basis, toMeasure = None, returnState = True):
     '''measures all targets in toMeasure, if basis states are smaller than the number of targets, will measure in basis of tensorproducts of basis states'''
     numQubits = log2(ensureSquare(state))

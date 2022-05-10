@@ -29,8 +29,8 @@ def genSimonsGate(numQubits, f: Callable):
     for i in range(size):
         x = i // 2
         b = i % 2
-        index = (f(x) + b)%2
-        arr[index][i] = 1
+        index = (x<<1) + (f(x) + b)%2
+        arr[i][index] = 1
 
     return arr
 
