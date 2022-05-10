@@ -1,7 +1,7 @@
 import numpy as np
 
 from qbot.basis import Basis
-from qbot.probVal import ProbVal
+from qbot.probVal import ProbVal, probRounding
 from qbot.density import densityEnsambleToDensity, tensorProd, partialTraceArbitrary, interweaveDensities
 from qbot.helpers import ensureSquare, log2
 
@@ -18,6 +18,12 @@ class MeasurementResult:
     def __init__(self, unMeasuredDensity: np.ndarray, probs: list[float], basisDensity: list[np.ndarray], basisSymbols:list[str], newState = None):
         self.unMeasuredDensity = unMeasuredDensity
         self.probs = probs
+
+        s = sum(self.probs)
+        for i in range(len(self.probs)):
+            self.probs[i] /= s
+            self.probs[i] = round(self.probs[i], probRounding)
+
         self.basisDensity = basisDensity
         self.basisSymbols = basisSymbols
         self.newState = newState

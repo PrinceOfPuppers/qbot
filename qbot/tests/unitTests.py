@@ -855,6 +855,51 @@ class testSpecialGates(unittest.TestCase):
         self.assertTrue(np.allclose(localNameSpace['state'], expectedState))
 
 
+class testAlgorithms(unittest.TestCase):
+
+    def test_eiganValueKickback(self):
+        localNameSpace = executeTxt(
+            '''
+            note eiganValue is 1
+            qset tensorProd(comp[0], hada[0])
+            gate hadamardGate ; 0
+            gate pauliXGate   ; 1 ; 0
+            gate hadamardGate ; 0
+            meas result1 ; comp ; 0
+
+            note eiganValue is -1
+            qset tensorProd(comp[0], hada[1])
+            gate hadamardGate ; 0
+            gate pauliXGate   ; 1 ; 0
+            gate hadamardGate ; 0
+            meas result2 ; comp ; 0
+            '''
+        )
+        self.assertTrue(localNameSpace['result1'].probs == [1.0, 0.0])
+        self.assertTrue(localNameSpace['result2'].probs == [0.0, 1.0])
+
+    def test_deutschAlgorithm(self):
+        localNameSpace = executeTxt(
+            '''
+            note constant f (should return |0>)
+            qset tensorProd(comp[0], hada[1])
+            gate hadamardGate ; 0
+            gate simonsGate(2, lambda x: 1 )
+            gate hadamardGate ; 0
+            meas result1 ; comp ; 0
+
+
+            note balanced f (should return |1>)
+            qset tensorProd(comp[0], hada[1])
+            gate hadamardGate ; 0
+            gate simonsGate(2, lambda x: x )
+            gate hadamardGate ; 0
+            meas result2 ; comp ; 0
+            '''
+        )
+        self.assertTrue(localNameSpace['result1'].probs == [1.0, 0.0])
+        self.assertTrue(localNameSpace['result2'].probs == [0.0, 1.0])
+
 
 
 if __name__ == "__main__":
