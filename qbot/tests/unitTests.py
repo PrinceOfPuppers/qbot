@@ -857,6 +857,31 @@ class testSpecialGates(unittest.TestCase):
 
 class testAlgorithms(unittest.TestCase):
 
+    def test_superDenseCoding(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef results ; []
+            cdef index ; 0
+
+            mark loop
+            qset bell[0]
+            gate tensorExp(pauliXGate, (index & 0b01) != 0)
+            gate tensorExp(pauliZGate, (index & 0b10) != 0)
+            meas result ; bell
+            pydo results.append(result.probs)
+            cdef index ; index + 1
+            cjmp loop ; index < 4
+            '''
+        )
+        results = localNameSpace['results']
+        for i,result in enumerate(results):
+            for j,prob in enumerate(result):
+                if i == j:
+                    self.assertEqual(prob, 1.0)
+                else:
+                    self.assertEqual(prob, 0.0)
+
+
     def test_eiganValueKickback(self):
         localNameSpace = executeTxt(
             '''

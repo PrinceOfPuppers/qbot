@@ -436,6 +436,8 @@ def halt(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 
     #err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], type(val).__name__))
 
+def pydo(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    _ = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
 
 
 
@@ -455,5 +457,6 @@ operations = {
     'cout': (cout, 1, 1),
     'halt': (halt, 0, 1),
     'swap': (swap, 2, 2),
+    'pydo': (pydo, 1, 1),
 }
 
