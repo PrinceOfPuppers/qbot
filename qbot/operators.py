@@ -272,6 +272,7 @@ def _gate(lines, lineNum, numQubits, contorls, firstTarget, gate):
 
 
 def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    
     numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
 
     gate = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
@@ -279,27 +280,35 @@ def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     # no targets
     if len(tokens) < 3:
         firstTarget = 0
+    # target specified
     else:
         firstTarget = evaluateWrapper(lines, lineNum, tokens[2], localNameSpace)
         assertProbValType(lines, lineNum, firstTarget, int)
 
     # no controls
     if len(tokens) < 4:
-        try:
-            g = funcWrapper( _gate, lines, lineNum, numQubits, [], firstTarget, gate )
-
-        except Exception as e:
-            err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
-
+        controls = []
     # controls
     else:
         controls = ensureContainer(lines, lineNum, evaluateWrapper(lines, lineNum, tokens[3], localNameSpace))
-        # TODO ensure controls and targets dont overlap
 
-        try:
-            g = funcWrapper( _gate, lines, lineNum, numQubits, controls, firstTarget, gate )
-        except Exception as e:
-            err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
+    # no conditional application
+    if len(tokens) < 5:
+        applicationCondition = True
+    # conditional application
+    else:
+        applicationCondition  = evaluateWrapper(lines, lineNum, tokens[4], localNameSpace)
+        assertProbValType(lines, lineNum, applicationCondition, bool)
+
+    # early exit
+    if not isinstance(applicationCondition, ProbVal) and not applicationCondition:
+        return
+
+    try:
+        g = funcWrapper( _gate, lines, lineNum, numQubits, controls, firstTarget, gate )
+    except Exception as e:
+        err.raiseFormattedError(err.pythonError(lines, lineNum ,e))
+
 
     if isinstance(g, ProbVal):
         for i in range(len(g.values)):
@@ -309,6 +318,13 @@ def gate(localNameSpace, lines, lineNum, tokens) -> OpReturn:
         val = gates.applyGate(g, localNameSpace['state'])
     else:
         raise Exception("gate is not array or ProbVal")
+
+
+    if isinstance(applicationCondition, ProbVal):
+        if applicationCondition.values[0]:
+            val = density.densityEnsambleToDensity(applicationCondition.probs, [val, localNameSpace['state']])
+        else:
+            val = density.densityEnsambleToDensity(applicationCondition.probs, [localNameSpace['state'], val])
 
     setVal(localNameSpace, lines, lineNum, 'state', val, qset = True)
 
@@ -450,7 +466,7 @@ operations = {
     #'qjmp': (qjmp, 2, 2),
     'cdef': (cdef, 2, 2),
     'qdef': (qdef, 2, 2),
-    'gate': (gate, 1, 3),
+    'gate': (gate, 1, 4),
     #'perm': (perm, 1, 1),
     'meas': (meas, 2, 3),
     'peek': (peek, 2, 3),

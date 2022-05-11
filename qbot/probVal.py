@@ -96,9 +96,9 @@ class ProbVal:
         return pv
 
 
-    def toDensityMatrix(self):
+    def toDensityMatrix(self) -> np.ndarray:
         if isinstance(self.instance(), np.ndarray):
-            sum = 0
+            sum = np.zeros(self.values[0].shape, dtype = complex)
             for i,prob in enumerate(self.probs):
                 value = self.values[i]
 

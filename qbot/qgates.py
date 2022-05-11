@@ -275,6 +275,6 @@ def genMultiControlledGate(numQubits:int, controlQubits:list[int], firstTargetQu
     return g
 
 
-def applyGate(gate, density):
+def applyGate(gate, density) -> np.ndarray:
     return gate @ density @ gate.conj().T
 
