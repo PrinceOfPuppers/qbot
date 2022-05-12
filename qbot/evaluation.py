@@ -41,7 +41,9 @@ globalNameSpace = {
     "qftGate": gates.genQFT,
 
     # other gates
-    "simonsGate":    lambda numQubits, f: funcWrapper(gates.genSimonsGate, numQubits, f),
+    "simonsGate":    lambda numQubits, f:    funcWrapper(gates.genSimonsGate, numQubits, f),
+    "swapGate":      lambda numQubits, a, b: funcWrapper(gates.genSwapGate, numQubits, a, b),
+    "shiftGate":     lambda numQubits, up=True, numShifts=1: funcWrapper(gates.genShiftGate, numQubits, up, numShifts),
 
     # collections (to make them behave with ProbVal better)
     "plist":         lambda *args: funcWrapper(lambda *a: list(a),  *args),

@@ -214,8 +214,7 @@ def runtime(localNameSpace, lines, startLine = 0, endLine = -1):
         #    lineNum = joinLine - 1
         #    continue
 
-def executeTxt(text: str):
-    lines = text.splitlines()
+def _execute(lines: list[str]):
     state = np.array([], dtype = complex)
     localNameSpace = {
         'state': state,
@@ -228,4 +227,10 @@ def executeTxt(text: str):
     runtime(localNameSpace, lines)
 
     return localNameSpace
+
+def executeFile(file):
+    return _execute(file.readlines())
+
+def executeTxt(text: str):
+    return _execute(text.splitlines())
 

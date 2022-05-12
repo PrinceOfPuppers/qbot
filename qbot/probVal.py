@@ -112,6 +112,9 @@ class ProbVal:
 
     def isEquivalent(self, other) -> bool:
         '''used to determine if two ProbVals are interchangable (different to == which returns probval of bools)'''
+        if not isinstance(other, ProbVal):
+            return False
+
         if len(self.probs) != len(other.probs):
             return False
 
@@ -202,7 +205,8 @@ class ProbVal:
         return ProbVal.fromUnzipped(newProbs, newVals)
 
     def __str__(self):
-        return "[" + ", ".join([f"({self.probs[i]} {self.values[i]})" for i in range(len(self.probs))]) + "]"
+        return f"ProbVal({self.probs}, {self.values})"
+        #return "[" + ", ".join([f"({self.probs[i]} {self.values[i]})" for i in range(len(self.probs))]) + "]"
 
     # comparison
     def __eq__(self, other):

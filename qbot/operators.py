@@ -459,20 +459,31 @@ def pydo(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 
 # "op_name: (func, arg_range_start, arg_range_end),
 operations = {
+    # Defines
+    'cdef': (cdef, 2, 2),
+    'qdef': (qdef, 2, 2),
+
+    # State Manipulation
     'qset': (qset, 1, 2),
+    'gate': (gate, 1, 4),
     'disc': (disc, 1, 1),
+    'swap': (swap, 2, 2),
+    #'perm': (perm, 1, 1),
+
+    # Measurement
+    'meas': (meas, 2, 3),
+    'peek': (peek, 2, 3),
+
+    # Control Flow
     'jump': (jump, 1, 1),
     'cjmp': (cjmp, 2, 3),
     #'qjmp': (qjmp, 2, 2),
-    'cdef': (cdef, 2, 2),
-    'qdef': (qdef, 2, 2),
-    'gate': (gate, 1, 4),
-    #'perm': (perm, 1, 1),
-    'meas': (meas, 2, 3),
-    'peek': (peek, 2, 3),
-    'cout': (cout, 1, 1),
     'halt': (halt, 0, 1),
-    'swap': (swap, 2, 2),
+    # also includes mark
+
+    # Misc
     'pydo': (pydo, 1, 1),
+    'cout': (cout, 1, 1),
+    # also includes note
 }
 
