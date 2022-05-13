@@ -219,8 +219,8 @@ def _execute(lines: list[str]):
     localNameSpace = {
         'state': state,
         f'__updated_state': False,
-        '__marks': dict()
-
+        '__marks': dict(),
+        '__prev_jump': -1,
     }
 
     recordMarks(localNameSpace, lines)

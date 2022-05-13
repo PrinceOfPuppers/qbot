@@ -321,6 +321,17 @@ cjmp [identifer] ; [condition]
 
 jumps to `mark [identifier]` if `[condition]` is true
 
+### retr
+```
+retr [condition?]
+
+[condition?]  - bool (optional)
+```
+
+returns (jumps) to line after most recent [jump](#jump)/[cjmp](#cjmp) statment execution if `[condition?]` is true, if there is no `[condition?]` always jumps. If there was no prior jump statement, returns to start of script
+
+operator name stands for "return"
+
 ### halt
 ```
 halt [condition?]
@@ -364,3 +375,50 @@ operator name stands for "console out"
 
 &nbsp;
 # EXAMPLES
+
+## Superdense Coding
+
+This algorithm tests all 4 permutations of 2 classical bits that can be transmitted by 1 qubit under superdense coding. It stores the results of the bell measurement in the results list (used in qbot's unittesting)
+```
+cdef results ; []
+cdef index ; 0
+
+mark loop
+qset bell[0]
+gate pauliXGate ; 0 ; [] ; (index & 0b01) != 0
+gate pauliZGate ; 0 ; [] ; (index & 0b10) != 0
+meas result ; bell
+pydo results.append(result.probs)
+cdef index ; index + 1
+cjmp loop ; index < 4
+
+```
+
+## Phase Kickback
+
+This algorithm tests all 4 permutations of 2 classical bits that can be transmitted by 1 qubit under superdense coding. It stores the results of the bell measurement in the results list (used in qbot's unittesting)
+
+
+reads out list of eigan values `[1, -1]` of the c-not gate associeated with eigan vectors |+> (hadamard plus) and |-> (hadamard minus)
+```
+cdef results ; []
+
+note eiganValue is 1
+qset tensorProd(comp[0], hada[0])
+jump checkPhase
+
+note eiganValue is -1
+qset tensorProd(comp[0], hada[1])
+jump checkPhase
+
+cout results
+halt
+
+mark checkPhase
+gate hadamardGate ; 0
+gate pauliXGate   ; 1 ; 0
+gate hadamardGate ; 0
+meas tmp ; comp ; 0
+pydo results.append(1 if abs(tmp[0]-1.0) < 1e-8 else -1)
+retr
+```

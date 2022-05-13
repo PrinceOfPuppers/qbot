@@ -189,6 +189,7 @@ def disc(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 
 
 def jump(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    localNameSpace['__prev_jump'] = lineNum
     return OpReturnVal(getMarkLineNum(localNameSpace, lines, lineNum, tokens[1]))
 
 
@@ -221,6 +222,7 @@ def cjmp(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 
     elif isinstance(cond, bool):
         if cond:
+            localNameSpace['__prev_jump'] = lineNum
             return OpReturnVal(markLineNum)
         return
 
@@ -450,6 +452,22 @@ def halt(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 
     #err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool', 'ProbVal<bool>'], type(val).__name__))
 
+def retr(localNameSpace, lines, lineNum, tokens) -> OpReturn:
+    if len(tokens) < 2:
+        return OpReturnVal(jumpLineNum = localNameSpace['__prev_jump'] + 1)
+
+    val = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
+
+    if isinstance(val, bool):
+        if val:
+            return OpReturnVal(jumpLineNum = localNameSpace['__prev_jump'] + 1)
+        return
+
+    if isinstance(val, ProbVal):
+        err.raiseFormattedError(err.customTypeError(lines, lineNum, ['bool'], val.typeString()))
+    err.raiseFormattedError( err.customTypeError(lines, lineNum, ['bool'], type(val).__name__) )
+
+
 def pydo(localNameSpace, lines, lineNum, tokens) -> OpReturn:
     _ = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
 
@@ -474,11 +492,11 @@ operations = {
 
     # Control Flow
     'jump': (jump, 1, 1),
-
     # MARK: removed probval control flow
     'cjmp': (cjmp, 2, 2),#3),
     #'qjmp': (qjmp, 2, 2),
     'halt': (halt, 0, 1),
+    'retr': (retr, 0, 1),
     # also includes mark
 
     # Misc

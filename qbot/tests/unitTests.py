@@ -713,6 +713,56 @@ class testOperations(unittest.TestCase):
     #     print(localNameSpace['x'])
     #     self.assertTrue( localNameSpace['x'].isEquivalent(ProbVal([0.5, 0.5], [1, 2])) )
 
+    def test_retr1(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 0
+
+            mark loop
+            jump incX 
+            cjmp loop ; x < 3
+            halt
+
+            mark incX
+            cdef x ; x + 1
+            retr
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], 3)
+
+    def test_retr2(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 0
+
+            mark loop
+            cjmp incX ; x < 3
+            halt
+
+            mark incX
+            cdef x ; x + 1
+            retr
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], 1)
+
+    def test_retr3(self):
+        localNameSpace = executeTxt(
+            '''
+            cdef x ; 0
+
+            mark loop
+            jump incX
+            jump loop
+
+            mark incX
+            cdef x ; x + 1
+            retr x < 3
+            '''
+        )
+        self.assertEqual(localNameSpace['x'], 3)
+
+
     def test_swap1(self):
         localNameSpace = executeTxt(
             '''
@@ -906,26 +956,31 @@ class testAlgorithms(unittest.TestCase):
                     self.assertEqual(prob, 0.0)
 
 
-    def test_eiganValueKickback(self):
+    def test_phaseKickback(self):
         localNameSpace = executeTxt(
             '''
+            cdef results ; []
+
             note eiganValue is 1
             qset tensorProd(comp[0], hada[0])
-            gate hadamardGate ; 0
-            gate pauliXGate   ; 1 ; 0
-            gate hadamardGate ; 0
-            meas result1 ; comp ; 0
+            jump checkPhase
 
             note eiganValue is -1
             qset tensorProd(comp[0], hada[1])
+            jump checkPhase
+            halt
+
+            mark checkPhase
             gate hadamardGate ; 0
             gate pauliXGate   ; 1 ; 0
             gate hadamardGate ; 0
-            meas result2 ; comp ; 0
+            meas tmp ; comp ; 0
+            pydo results.append(tmp)
+            retr
             '''
         )
-        self.assertTrue(localNameSpace['result1'].probs == [1.0, 0.0])
-        self.assertTrue(localNameSpace['result2'].probs == [0.0, 1.0])
+        self.assertTrue(localNameSpace['results'][0].probs == [1.0, 0.0])
+        self.assertTrue(localNameSpace['results'][1].probs == [0.0, 1.0])
 
     def test_deutschAlgorithm(self):
         localNameSpace = executeTxt(
