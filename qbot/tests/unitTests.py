@@ -1,9 +1,10 @@
 import unittest
 
 import numpy as np
+import os
 import qbot.qgates as gates
 from qbot.evaluation import globalNameSpace
-from qbot.interpreter import executeTxt
+from qbot.interpreter import executeTxt, executeFile
 import qbot.density as density
 import qbot.basis as basis
 import qbot.measurement as meas
@@ -1007,6 +1008,15 @@ class testAlgorithms(unittest.TestCase):
             retr
             '''
         )
+        self.assertEqual(localNameSpace['results'][0], "constant")
+        self.assertEqual(localNameSpace['results'][1], "balanced")
+
+
+class testFileParsing(unittest.TestCase):
+    def test_deutschAlgorithmFromFile(self):
+        filePath = os.path.join(os.path.dirname(__file__), 'test.qb')
+        with open(filePath, 'r') as f:
+            localNameSpace = executeFile(f)
         self.assertEqual(localNameSpace['results'][0], "constant")
         self.assertEqual(localNameSpace['results'][1], "balanced")
 

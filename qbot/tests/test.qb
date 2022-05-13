@@ -1,0 +1,20 @@
+cdef results ; []
+
+note constant f (should return |0>)
+cdef f ; lambda x: 1
+jump check
+
+note balanced f (should return |1>)
+cdef f ; lambda x: x
+jump check
+
+halt
+
+mark check
+qset tensorProd(comp[0], hada[1])
+gate hadamardGate ; 0
+gate simonsGate(2, f)
+gate hadamardGate ; 0
+meas tmp ; comp ; 0
+pydo results.append("constant" if np_isclose(tmp.probs[0], 1.0) else "balanced")
+retr

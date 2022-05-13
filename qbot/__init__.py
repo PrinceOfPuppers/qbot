@@ -53,7 +53,8 @@ def baseHandler(args,_):
     filePath = getFilePath(args.FILE)
     if not os.path.exists(filePath):
         print(f"File Not Found at Path: \n{filePath}")
-    executeFile(open(filePath, 'r'))
+    with open(filePath, 'r') as f:
+        executeFile(f)
     #parser.print_help()
 
 
