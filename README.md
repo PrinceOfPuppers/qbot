@@ -1,6 +1,6 @@
 # qbot
 
-> A domain-specific programming language for analysing quamtum algorithms using the quantum circuit model and probabilistic computing.
+> A domain-specific programming language for analyzing quantum algorithms using the quantum circuit model and probabilistic computing. Implemented in python with exclusively numpy.
 Paradigms: Quantum, Probabilistic, Imperative, Interpreted
 
 ## Contents
@@ -14,7 +14,11 @@ Paradigms: Quantum, Probabilistic, Imperative, Interpreted
     - [Basis](#Basis)
     - [Measurement Result](#Measurement-Result)
 
-3. [TOOLS](#TOOLS)
+3. [TOOLS AND CONSTANTS](#TOOLS-AND-CONSTANTS)
+    - [Gates](#Gates)
+    - [States](#States)
+    - [Combining Gates/States](#Combining-Gates/States)
+    - [numpy/math wrappers](numpy/math-wrappers)
 
 4. [OPERATIONS](#OPERATIONS)
     - [Defines](#Defines)
@@ -23,32 +27,34 @@ Paradigms: Quantum, Probabilistic, Imperative, Interpreted
     - [Control Flow](#Control-Flow)
     - [Misc](#Misc)
 
-
 5. [EXAMPLES](#EXAMPLES)
+    - [Superdense Coding](#Superdense Coding)
+    - [Phase Kickback](#Phase Kickback)
+    - [The Deutsch Algorithm](#The Deutsch Algorithm)
 
 
 &nbsp;
 # OVERVIEW
-qbot is a domain-specific programming language for analysing quamtum algorithms using the quantum circuit model and probabilistic computing. 
+qbot is a domain-specific programming language for analyzing quantum algorithms using the quantum circuit model and probabilistic computing. 
 
-qbot uses a wrapped version of python's expression evalutaion for its own expression evaluation, some examples of primitive/expression behavior will be in python for this reason.
+qbot uses a wrapped version of python's expression evaluation for its own expression evaluation, some examples of primitive/expression behaviour will be in python for this reason.
 
-Termonology used throughout this document:
+Terminology used throughout this document:
 - `state` refers to the qubit register
 - `targets` refers to qubits in `state` being affected by an operation (such as a unitary or measurement)
 
 ## Probabilistic Computing
-Rather than using a random number generator to decide the outcome of a random processes (ie measurement), qbot stores the outcomes and associeated probabilites in a special primitive called a [ProbVal](#ProbVal) which can be used in futher computation. 
+Rather than using a random number generator to decide the outcome of a random processes (ie measurement), qbot stores the outcomes and associated probabilities in a special primitive called a [ProbVal](#ProbVal) which can be used in further computation. 
 
 ## Quantum Circuit Model
-Qbot has a register of qubits on which it applies unitary matrices, measurements and etc. On top of this qbot contains a traditional namespace to be used in computation, which comes pre-populated with many commonly needed unitaries, states, bases and operations. Anything missing can be created using the inbuilt [TOOLS](#TOOLS), or the exposed numpy functions, all of which are compatible with [ProbVals](#ProbVal).
+qbot has a register of qubits on which it applies unitary matrices, measurements and etc. On top of this qbot contains a traditional namespace to be used in computation, which comes pre-populated with many commonly needed unitaries, states, bases and operations. Anything missing can be created using the inbuilt [TOOLS](#TOOLS), or the exposed numpy functions, all of which are compatible with [ProbVals](#ProbVal).
 
 ## General Syntax
 The syntax resembles an assembly language:
 ```
 OPERATION arg1 ; arg2 ; ...
 ```
-where the arguments are valid python expressions seperated by `;`. [OPERATIONS](#OPERATIONS) may [act on state](#State-Manipulation), [measure the state](#Measurement), [define variables](#Defines), [control the flow](#Control-Flow), [among other functions](#Misc).
+Where the arguments are valid python expressions separated by `;`. [OPERATIONS](#OPERATIONS) may [act on state](#State-Manipulation), [measure the state](#Measurement), [define variables](#Defines), [control the flow](#Control-Flow), [among other functions](#Misc).
 
 
 &nbsp;
@@ -56,7 +62,7 @@ where the arguments are valid python expressions seperated by `;`. [OPERATIONS](
 List does not include standard python primitives
 
 ## ProbVal
-qbot allows for the creation of probabilistic values (Probval's) which are in essense a classical superposisiton of multiple possible values. They behave very similary to standard variables in python, for example:
+qbot allows for the creation of probabilistic values (ProbVals) which are in essence a classical superposition of multiple possible values. They behave very similarly to standard variables in python, for example:
 
 ``` python
 # python example
@@ -66,31 +72,31 @@ print(x + y) # prints ProbVal([0.5, 0.5], [5, 8])
 
 print(x == 3) # prints ProbVal([0.5, 0.5], [False, True])
 ```
-They are compatible with nearly all inbuilt python operators, qbot specific helper functions, and the provided numpy/math functions. ProbVals will auto normalize on instanceation
+They are compatible with nearly all inbuilt python operators, qbot specific helper functions, and the provided numpy/math functions. ProbVals will auto normalize on instantiation
 
 **ProbVal Attributes:**
 - `x.values - list<any>` \
-list of values x could be
+List of values x could be
 - `x.probs - list<float>` \
-list of probabilites for each value
+List of probabilities for each value
 
 **ProbVal Methods:**
 - `x.toDensity() -> np.ndarray` \
-return density matrix if all values are either kets (1d np.ndarray), or density matrices (2d np.ndarray)
+Return density matrix if all values are either kets (1d np.ndarray), or density matrices (2d np.ndarray)
 - `x.map(lambdaFunc) -> ProbVal` \
-returns a ProbVal with all the values in `x` mapped to return of `lambdaFunc`
+Returns a ProbVal with all the values in `x` mapped to return of `lambdaFunc`
 - `x.instance() -> any` \
-used for instance checking, ie `if isinstance(x.instance(), int)`, returns the first value from `x.values` if all values are of the same type, else returns `None`
+Used for instance checking, ie `if isinstance(x.instance(), int)`, returns the first value from `x.values` if all values are of the same type, else returns `None`
 - `x.typeString() -> string` \
-returns `ProbVal<[TYPE]>` if all values are of type `[TYPE]`, else returns `ProbVal<mixed>`
+Returns `ProbVal<[TYPE]>` if all values are of type `[TYPE]`, else returns `ProbVal<mixed>`
 - `x.isEquivalent(y) -> bool` \
-returns `True` if `x` and y are completly interchangable (contain all the same values with the same probabilities), else `False`
+Returns `True` if `x` and y are completely interchangeable (contain all the same values with the same probabilities), else `False`
 
 ProbVal also implements nearly all `python dunder methods`, which allows for its compatibility with python's operators and the like.
 
 
 ## Basis
-qbot predefines `computation` `hadamard` `bell` bases to be used to state creation and measurement, bases are represented as `Basis` type and can be indexed to get specific basis states, and passed directly to the [measurment operator](#meas). bases have several aliases for convience
+qbot predefines `computation` `hadamard` `bell` bases to be used to state creation and measurement, bases are represented as `Basis` type and can be indexed to get specific basis states, and passed directly to the [measurement operator](#meas). bases have several aliases for convenience
 
 
 ```
@@ -117,21 +123,21 @@ cdef y ; hada[0]
 
 **Basis Attributes:**
 - `x.names - list<string>` \
-list of aliases
+List of aliases
 - `x.numQubits - int` \
-corrisponds to the size of basis states
+Corresponds to the size of basis states
 - `x.density - list<np.ndarray>` \
-list of basis state density matrices
+List of basis state density matrices
 - `x.kets    - list<np.ndarray>` \
-list of basis state kets
+List of basis state kets
 
 **Basis "Methods":**
 - `x[i] -> np.ndarray` \
-returns a density matrix of ith basis state (short form of x.density[i])
+Returns a density matrix of ith basis state (short form of x.density[i])
 
 
 ## MeasurementResult
-Returned by [measurement operator](#meas), contains information about a measurment. can be directly printed out using [cout operator](#cout) for clear readout of the results of a measurement. Also returned by [peek operator](#peek).
+Returned by [measurement operator](#meas), contains information about a measurement. can be directly printed out using [cout operator](#cout) for clear readout of the results of a measurement. Also returned by [peek operator](#peek).
 
 
 ```
@@ -142,7 +148,7 @@ qset computation[0]
 meas x ; computation
 cout x
 ```
-this will print:
+This will print:
 ```
 |0〉- 1.0 (100.0%)
 |1〉- 0.0 (0.0%)
@@ -150,25 +156,73 @@ this will print:
 
 **MeasurementResult Attributes:**
 - `x.probs - list<float>` \
-list of probabilites for each state in the measurment basis
+List of probabilities for each state in the measurement basis
 - `x.basisDensity - list<np.ndarray>` \
-list of measurement basis states corrisponding to `x.probs`
+List of measurement basis states corresponding to `x.probs`
 - `x.basisSymbols - list<string>` \
-list symbols of each measurement basis kets (used in printout)
+List symbols of each measurement basis kets (used in printout)
 - `x.newState - np.ndarray` \
-density matrix of `state` after measurement (what state is assigned to)
+Density matrix of `state` after measurement (what state is assigned to)
 - `x.unMeasuredDensity - np.ndarray` \
-density matrix partially traced target qubits before measurement, gets turned into `x.newState`
+Density matrix partially traced target qubits before measurement, gets turned into `x.newState`
 
 
 &nbsp;
-# TOOLS
+# TOOLS AND CONSTANTS
+**NOTE:** All functions are listed are compatible with [ProbVal](#ProbVal) arguments so long as the [ProbVal](#ProbVal) values are of the correct type
+
+## Gates
+- `identityGate - np.ndarray`
+- `hadamardGate - np.ndarray`
+- `pauliXGate - np.ndarray`
+- `pauliYGate - np.ndarray`
+- `pauliZGate - np.ndarray`
+- `xRotGate - np.ndarray`
+- `yRotGate - np.ndarray`
+- `zRotGate - np.ndarray`
+- `qftGate(numQubits: int) -> np.ndarray`
+- `simonsGate(numQubits: int, f: Callable) -> np.ndarray` \
+implements `U_f: |x>|b> -> |x>|b addmod2 f(x)>`
+- `swapGate(numQubits: int, qubitA: int, qubitB: int) -> np.ndarray` \
+swaps `qubitA` and `qubitB`
+- `shiftGate(numQubits: int, up:bool = True) -> np.ndarray` \
+shifts all qubits up or down
+
+## States
+- Computational Basis States
+- Hadamard Basis States
+- Bell (EPR) Basis States
+
+For more information about how these are represented/applied see [Basis](#Basis)
+
+## Combining Gates/States
+qbot contains the following helpers implementing tensor/kroneker product:
+- `tensorProd(*args: np.ndarray) -> np.ndarray` \
+takes the tensor product of a variable number of `np.ndarrays`
+- `tensorExp(arg: np.ndarray, n:int) -> np.ndarray` \
+tensor exponent ie) `tensorExp(hadamardGate, 2) == tensorProd(hadamardGate, hadamardGate)`
+- `tensorPermute(numTensProd: int, n: int, densities: Basis or list<np.ndarray>) -> np.ndarray` \ 
+returns the `n`th permutation of of `numTensProd` states in `densities` ie) `tensorPermute(3, 2, comp) == tensorProd(comp[0], comp[1], comp[0])`
+
+## numpy/math wrappers
+
+qbot exposes nearly all numpy, numpy.linalg and builtin python math functions and wraps them to be compatible with [ProbVal](#ProbVal). numpy functions are prefixed with `np_*`, linalg with `linalg_` and math functions with `math_*`
+
+**Examples:**
+
+- `math_cos`
+- `math_pi`
+- `np_array`
+- `linalg_solve`
+- etc...
+
+For a full list please see `qbot/evaluation.py`
 
 
 &nbsp;
 # OPERATIONS
 
-Quick info format:
+**Quick format info:**
 ```
 operator [arg1] ; [arg2] ; [optionalArg3?] ; ...
 
@@ -189,7 +243,7 @@ cdef [identifier] ; [value]
 [value]      - any
 ```
 
-adds `[value]` to the namespace under name `[identifier]`. 
+Adds `[value]` to the namespace under name `[identifier]`.
 
 Operator name stands for "classical define"
 
@@ -206,9 +260,9 @@ qdef [identifier] ; [valueExpr]
 [identifier] - identifier
 [value]      - np.ndarray, ProbVal<np.ndarray>
 ```
-adds `[value]` to the namespace under name `[identifier]`. `[value]` type must be `np.ndarray` or  `ProbVal<np.ndarray>`, kets and ProbVals are converted into density matrices
+Adds `[value]` to the namespace under name `[identifier]`. `[value]` type must be `np.ndarray` or  `ProbVal<np.ndarray>`, kets and ProbVals are converted into density matrices
 
-operator name stands for "quantum define"
+Operator name stands for "quantum define"
 
 **example:**
 ```
@@ -227,9 +281,9 @@ qset [newState] ; [targets?]
 [targets?] - int, list<int>, ProbVal<int>, ProbVal<list<int>> (optional)
 ```
 
-sets `[targets?]` qubits in `state` to `[newState]`, if `[targets?]` are not provided, discards current register and sets it to `[newState]`
+Sets `[targets?]` qubits in `state` to `[newState]`, if `[targets?]` are not provided, discards current register and sets it to `[newState]`
 
-operator name stands for "quantum set"
+Operator name stands for "quantum set"
 
 ### gate
 ```
@@ -241,7 +295,7 @@ gate [gate] ; [targets?] ; [controls?] ; [conditional?]
 [conditional?] - bool, ProbVal<bool>
 ```
 
-applies unitary `gate` to `[targets?]` qubits in state with `[controls?]`. `gate` application can also be controlled by a classical condition using `[conditional?]`
+Applies unitary `gate` to `[targets?]` qubits in state with `[controls?]`. `gate` application can also be controlled by a classical condition using `[conditional?]`
 
 ### disc
 ```
@@ -250,9 +304,9 @@ disc [targets]
 [targets] - int, list<int>, ProbVal<int>, ProbVal<list<int>>
 ```
 
-traces out `[targets]` from `state`
+Traces out `[targets]` from `state`
 
-operator name stands for "discard"
+Operator name stands for "discard"
 
 ### swap
 ```
@@ -262,7 +316,7 @@ swap [targetA] ; [targetB]
 [targetB] - int, ProbVal<int>
 ```
 
-swaps `[targetA]` and `[targetB]` in `state`, equivalent to `gate swapGate(numQubits, targetA, targetB)` where `numQubits` is the number of qubits in `state`
+Swaps `[targetA]` and `[targetB]` in `state`, equivalent to `gate swapGate(numQubits, targetA, targetB)` where `numQubits` is the number of qubits in `state`
 
 ## Measuring
 
@@ -275,9 +329,9 @@ meas [identifer] ; [basis] ; [targets?]
 [targets?]   - int, list<int>, ProbVal<int>, ProbVal<list<int>> (optional)
 ```
 
-measures `[targets?]` of `state` with respect to `[basis]` and sets `[identifer]` to the result. `[targets?]` in `state` are collapsed to an ensamble of measurement basis states
+Measures `[targets?]` of `state` with respect to `[basis]` and sets `[identifer]` to the result. `[targets?]` in `state` are collapsed to an ensemble of measurement basis states
 
-operator name stands for "measurement"
+Operator name stands for "measurement"
 
 ### peek
 ```
@@ -288,7 +342,7 @@ peek [identifer] ; [basis] ; [targets?]
 [targets?]   - int, list<int>, ProbVal<int>, ProbVal<list<int>> (optional)
 ```
 
-similar to [meas](#meas), `peek` measures `[targets?]` of `state` with respect to `[basis]` and sets `[identifer]` to the result, however `state` remains completely uneffected
+Similar to [meas](#meas), `peek` measures `[targets?]` of `state` with respect to `[basis]` and sets `[identifer]` to the result, however `state` remains completely unaffected
 
 
 ## Control Flow
@@ -300,7 +354,7 @@ mark [identifer]
 [identifier] - identifier
 ```
 
-marks a line with `[identifier]` to later be jumped to with [jump](#jump) or [cjmp](#cjmp)
+Marks a line with `[identifier]` to later be jumped to with [jump](#jump) or [cjmp](#cjmp)
 
 ### jump
 ```
@@ -309,7 +363,7 @@ jump [identifer]
 [identifier] - identifier
 ```
 
-jumps to `mark [identifier]`
+Jumps to `mark [identifier]`
 
 ### cjmp
 ```
@@ -319,7 +373,7 @@ cjmp [identifer] ; [condition]
 [condition]  - bool
 ```
 
-jumps to `mark [identifier]` if `[condition]` is true
+Jumps to `mark [identifier]` if `[condition]` is true
 
 ### retr
 ```
@@ -328,7 +382,7 @@ retr [condition?]
 [condition?]  - bool (optional)
 ```
 
-returns (jumps) to line after most recent [jump](#jump)/[cjmp](#cjmp) statment execution if `[condition?]` is true, if there is no `[condition?]` always jumps. If there was no prior jump statement, returns to start of script
+Returns (jumps) to line after most recent [jump](#jump)/[cjmp](#cjmp) statement execution if `[condition?]` is true, if there is no `[condition?]` always jumps. If there was no prior jump statement, returns to start of script
 
 operator name stands for "return"
 
@@ -339,7 +393,7 @@ halt [condition?]
 [condition?]  - bool (optional)
 ```
 
-halts execution if `[condition?]` is true, if there is no `[condition?]` always halts
+Halts execution if `[condition?]` is true, if there is no `[condition?]` always halts
 
 
 ## Misc
@@ -351,9 +405,9 @@ pydo [expr]
 [expr]  - any
 ```
 
-evaluates expression `[expr]` and ignores what it evaluates to, identical to using `cdef x ; [expr]` but without variable assignment
+Evaluates expression `[expr]` and ignores what it evaluates to, identical to using `cdef x ; [expr]` but without variable assignment
 
-operator name stands for "python do"
+Operator name stands for "python do"
 
 **example:**
 ```
@@ -368,9 +422,9 @@ cout [toPrint]
 [toPrint] - any
 ```
 
-evaluates `[toPrint]` and prints it
+Evaluates `[toPrint]` and prints it
 
-operator name stands for "console out"
+Operator name stands for "console out"
 
 
 &nbsp;
@@ -378,7 +432,7 @@ operator name stands for "console out"
 
 ## Superdense Coding
 
-This algorithm tests all 4 permutations of 2 classical bits that can be transmitted by 1 qubit under superdense coding. It stores the results of the bell measurement in the results list (used in qbot's unittesting)
+This algorithm tests all 4 permutations of 2 classical bits that can be transmitted by 1 qubit under superdense coding. It stores the results of the bell measurement in the results list (used in qbot's unit testing)
 ```
 cdef results ; []
 cdef index ; 0
@@ -396,10 +450,7 @@ cjmp loop ; index < 4
 
 ## Phase Kickback
 
-This algorithm tests all 4 permutations of 2 classical bits that can be transmitted by 1 qubit under superdense coding. It stores the results of the bell measurement in the results list (used in qbot's unittesting)
-
-
-reads out list of eigan values `[1, -1]` of the c-not gate associeated with eigan vectors |+> (hadamard plus) and |-> (hadamard minus)
+Reads out list of eigan values `[1, -1]` of the c-not gate associated with eigan vectors `|+>` (hadamard plus) and `|->` (hadamard minus)
 ```
 cdef results ; []
 
@@ -419,6 +470,33 @@ gate hadamardGate ; 0
 gate pauliXGate   ; 1 ; 0
 gate hadamardGate ; 0
 meas tmp ; comp ; 0
-pydo results.append(1 if abs(tmp[0]-1.0) < 1e-8 else -1)
+pydo results.append(1 if np_isclose(tmp[0], 1.0) else -1)
+retr
+```
+
+
+## The Deutsch Algorithm
+determines if lambda function is balanced or constant using a single call to a gate derived from it. Tested with first a constant lambda function, then a balanced one
+
+```
+cdef results ; []
+
+note constant f (should return |0>)
+cdef f ; lambda x: 1
+jump check
+
+note balanced f (should return |1>)
+cdef f ; lambda x: x
+jump check
+
+halt
+
+mark check
+qset tensorProd(comp[0], hada[1])
+gate hadamardGate ; 0
+gate simonsGate(2, f)
+gate hadamardGate ; 0
+meas tmp ; comp ; 0
+pydo results.append("constant" if np_isclose(tmp.probs[0], 1.0) else "balanced")
 retr
 ```

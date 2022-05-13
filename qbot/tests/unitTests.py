@@ -985,24 +985,30 @@ class testAlgorithms(unittest.TestCase):
     def test_deutschAlgorithm(self):
         localNameSpace = executeTxt(
             '''
-            note constant f (should return |0>)
-            qset tensorProd(comp[0], hada[1])
-            gate hadamardGate ; 0
-            gate simonsGate(2, lambda x: 1 )
-            gate hadamardGate ; 0
-            meas result1 ; comp ; 0
+            cdef results ; []
 
+            note constant f (should return |0>)
+            cdef f ; lambda x: 1
+            jump check
 
             note balanced f (should return |1>)
+            cdef f ; lambda x: x
+            jump check
+
+            halt
+
+            mark check
             qset tensorProd(comp[0], hada[1])
             gate hadamardGate ; 0
-            gate simonsGate(2, lambda x: x )
+            gate simonsGate(2, f)
             gate hadamardGate ; 0
-            meas result2 ; comp ; 0
+            meas tmp ; comp ; 0
+            pydo results.append("constant" if np_isclose(tmp.probs[0], 1.0) else "balanced")
+            retr
             '''
         )
-        self.assertTrue(localNameSpace['result1'].probs == [1.0, 0.0])
-        self.assertTrue(localNameSpace['result2'].probs == [0.0, 1.0])
+        self.assertEqual(localNameSpace['results'][0], "constant")
+        self.assertEqual(localNameSpace['results'][1], "balanced")
 
 
 if __name__ == "__main__":
