@@ -12,18 +12,18 @@ Paradigms: Quantum, Probabilistic, Imperative, Interpreted
 2. [BUILTIN TYPES](#BUILTIN-TYPES)
     - [ProbVal](#ProbVal)
     - [Basis](#Basis)
-    - [Measurement Result](#Measurement-Result)
+    - [MeasurementResult](#MeasurementResult)
 
 3. [TOOLS AND CONSTANTS](#TOOLS-AND-CONSTANTS)
     - [Gates](#Gates)
     - [States](#States)
-    - [Combining Gates/States](#Combining-Gates/States)
-    - [numpy/math wrappers](numpy/math-wrappers)
+    - [Combining Gates/States](#combininggatesstates)
+    - [numpy/math wrappers](numpymathwrappers)
 
 4. [OPERATIONS](#OPERATIONS)
     - [Defines](#Defines)
     - [State Manipulation](#State-Manipulation)
-    - [Measuring](#Measuring)
+    - [Measurement](#Measurement)
     - [Control Flow](#Control-Flow)
     - [Misc](#Misc)
 
@@ -47,14 +47,14 @@ Terminology used throughout this document:
 Rather than using a random number generator to decide the outcome of a random processes (i.e. measurement), qbot stores the outcomes and associated probabilities in a special primitive called a [ProbVal](#ProbVal) which can be used in further computation. 
 
 ## Quantum Circuit Model
-qbot has a register of qubits on which it applies unitary matrices, measurements, etc. On top of this, qbot contains a traditional namespace to be used in computation which comes pre-populated with many commonly needed unitaries, states, bases and operations. Anything missing can be created using the inbuilt [TOOLS](#TOOLS-AND-CONSTANTS), or the exposed numpy functions, all of which are compatible with [ProbVals](#ProbVal).
+qbot has a register of qubits on which it applies unitary matrices, measurements, etc. On top of this, qbot contains a traditional namespace to be used in computation which comes pre-populated with many commonly needed unitaries, states, bases and operations. Anything missing can be created using the inbuilt [tools](#TOOLS-AND-CONSTANTS), or the exposed numpy functions, all of which are compatible with [ProbVals](#ProbVal).
 
 ## General Syntax
 The syntax resembles an assembly language:
 ```
 OPERATION arg1 ; arg2 ; ...
 ```
-Where the arguments are valid python expressions separated by `;`. [OPERATIONS](#OPERATIONS) may [act on state](#State-Manipulation), [measure the state](#Measurement), [define variables](#Defines), [control the flow](#Control-Flow), [among other functions](#Misc).
+Where the arguments are valid python expressions separated by `;`. [operations](#OPERATIONS) may [act on state](#State-Manipulation), [measure the state](#Measurement), [define variables](#Defines) and [control flow](#Control-Flow), [among other functions](#Misc).
 
 
 &nbsp;
@@ -317,7 +317,7 @@ swap [targetA] ; [targetB]
 
 Swaps `[targetA]` and `[targetB]` in `state`, equivalent to `gate swapGate(numQubits, targetA, targetB)` where `numQubits` is the number of qubits in `state`.
 
-## Measuring
+## Measurement
 
 ### meas
 ```
