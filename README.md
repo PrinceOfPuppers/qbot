@@ -5,23 +5,23 @@ Paradigms: Quantum, Probabilistic, Imperative, Interpreted
 
 ## Contents
 1. [OVERVIEW](#OVERVIEW)
-    - [Probabilistic Computing](##Probabilistic)
-    - [Quantum Circuit Model](##Quantum-Circuit-Model)
-    - [General Syntax](##General-Syntax)
+    - [Probabilistic Computing](#Probabilistic-Computing)
+    - [Quantum Circuit Model](#Quantum-Circuit-Model)
+    - [General Syntax](#General-Syntax)
 
 2. [BUILTIN TYPES](#BUILTIN-TYPES)
-    - [ProbVal](##ProbVal)
-    - [Basis](##Basis)
-    - [Measurement Result](##Measurement-Result)
+    - [ProbVal](#ProbVal)
+    - [Basis](#Basis)
+    - [Measurement Result](#Measurement-Result)
 
 3. [TOOLS](#TOOLS)
 
 4. [OPERATIONS](#OPERATIONS)
-    - [Defines](##Defines)
-    - [State Manipulation](##State-Manipulation)
-    - [Measuring](##Measuring)
-    - [Control Flow](##Control-Flow)
-    - [Misc](##Misc)
+    - [Defines](#Defines)
+    - [State Manipulation](#State-Manipulation)
+    - [Measuring](#Measuring)
+    - [Control Flow](#Control-Flow)
+    - [Misc](#Misc)
 
 
 5. [EXAMPLES](#EXAMPLES)
@@ -33,18 +33,22 @@ qbot is a domain-specific programming language for analysing quamtum algorithms 
 
 qbot uses a wrapped version of python's expression evalutaion for its own expression evaluation, some examples of primitive/expression behavior will be in python for this reason.
 
+Termonology used throughout this document:
+- `state` refers to the qubit register
+- `targets` refers to qubits in `state` being affected by an operation (such as a unitary or measurement)
+
 ## Probabilistic Computing
-Rather than using a random number generator to decide the outcome of a random processes (ie measurement), qbot stores the outcomes and associeated probabilites in a special primitive called a [ProbVal](###ProbVal) which can be used in futher computation. 
+Rather than using a random number generator to decide the outcome of a random processes (ie measurement), qbot stores the outcomes and associeated probabilites in a special primitive called a [ProbVal](#ProbVal) which can be used in futher computation. 
 
 ## Quantum Circuit Model
-Qbot has a register of qubits on which it applies unitary matrices, measurements and etc. On top of this qbot contains a traditional namespace to be used in computation, which comes pre-populated with many commonly needed unitaries, states, bases and operations. Anything missing can be created using the inbuilt [TOOLS](#TOOLS), or the exposed numpy functions, all of which are compatible with [ProbVals](###ProbVal).
+Qbot has a register of qubits on which it applies unitary matrices, measurements and etc. On top of this qbot contains a traditional namespace to be used in computation, which comes pre-populated with many commonly needed unitaries, states, bases and operations. Anything missing can be created using the inbuilt [TOOLS](#TOOLS), or the exposed numpy functions, all of which are compatible with [ProbVals](#ProbVal).
 
 ## General Syntax
 The syntax resembles an assembly language:
 ```
 OPERATION arg1 ; arg2 ; ...
 ```
-where the arguments are valid python expressions seperated by `;`. [OPERATIONS](#OPERATIONS) may [act on the qubit register](##State-Manipulation), [measure the qubit register](##Measurement), [define variables](##Defines), [control the flow](##Control-Flow), [among other functions](##Misc).
+where the arguments are valid python expressions seperated by `;`. [OPERATIONS](#OPERATIONS) may [act on state](#State-Manipulation), [measure the state](#Measurement), [define variables](#Defines), [control the flow](#Control-Flow), [among other functions](#Misc).
 
 
 &nbsp;
@@ -86,7 +90,7 @@ ProbVal also implements nearly all `python dunder methods`, which allows for its
 
 
 ## Basis
-qbot predefines `computation` `hadamard` `bell` bases to be used to state creation and measurement, bases are represented as `Basis` type and can be indexed to get specific basis states, and passed directly to the [measurment operator](###meas). bases have several aliases for convience
+qbot predefines `computation` `hadamard` `bell` bases to be used to state creation and measurement, bases are represented as `Basis` type and can be indexed to get specific basis states, and passed directly to the [measurment operator](#meas). bases have several aliases for convience
 
 
 ```
@@ -127,7 +131,7 @@ returns a density matrix of ith basis state (short form of x.density[i])
 
 
 ## MeasurementResult
-Returned by [measurement operator](###meas), contains information about a measurment. can be directly printed out using [cout operator](###cout) for clear readout of the results of a measurement. Also returned by [peek operator](###peek).
+Returned by [measurement operator](#meas), contains information about a measurment. can be directly printed out using [cout operator](#cout) for clear readout of the results of a measurement. Also returned by [peek operator](#peek).
 
 
 ```
@@ -173,7 +177,7 @@ operator [arg1] ; [arg2] ; [optionalArg3?] ; ...
 [optionalArg3?]  - typeA, orTypeB, ... (optional)
 ```
 
-the qubit register will be referred to as `state`, `target`/`targets` refers to target qubits in `state`
+As a reminder, the qubit register will be referred to as `state`, `target`/`targets` refers to target qubits in `state`
 
 
 ## Defines
@@ -217,7 +221,7 @@ qdef y ; ProbVal([0.25, 0.75], [hadamard[0], bell[1]])
 
 ### qset
 ```
-qset ; [newState] ; [targets?]
+qset [newState] ; [targets?]
 
 [newState] - np.ndarray, ProbVal<np.ndarray>
 [targets?] - int, list<int>, ProbVal<int>, ProbVal<list<int>> (optional)
@@ -229,7 +233,7 @@ operator name stands for "quantum set"
 
 ### gate
 ```
-gate ; [gate] ; [targets?] ; [controls?] ; [conditional?]
+gate [gate] ; [targets?] ; [controls?] ; [conditional?]
 
 [gate]         - np.ndarray, ProbVal<np.ndarray>
 [targets?]     - int, list<int>, ProbVal<int>, ProbVal<list<int>> (optional)
@@ -241,7 +245,7 @@ applies unitary `gate` to `[targets?]` qubits in state with `[controls?]`. `gate
 
 ### disc
 ```
-disc ; [targets]
+disc [targets]
 
 [targets] - int, list<int>, ProbVal<int>, ProbVal<list<int>>
 ```
@@ -252,7 +256,7 @@ operator name stands for "discard"
 
 ### swap
 ```
-swap ; [targetA] ; [targetB]
+swap [targetA] ; [targetB]
 
 [targetA] - int, ProbVal<int>
 [targetB] - int, ProbVal<int>
@@ -264,23 +268,98 @@ swaps `[targetA]` and `[targetB]` in `state`, equivalent to `gate swapGate(numQu
 
 ### meas
 ```
-meas ; [identifer] ; [basis] ; [targets?]
+meas [identifer] ; [basis] ; [targets?]
 
 [identifier] - identifier
 [basis]      - Basis
 [targets?]   - int, list<int>, ProbVal<int>, ProbVal<list<int>> (optional)
 ```
 
-measures `[targets?]` of `state` with respect to `[basis]` and sets `[identifer]` to the result. 
+measures `[targets?]` of `state` with respect to `[basis]` and sets `[identifer]` to the result. `[targets?]` in `state` are collapsed to an ensamble of measurement basis states
 
 operator name stands for "measurement"
 
-    'meas': (meas, 2, 3),
-    'peek': (peek, 2, 3),
+### peek
+```
+peek [identifer] ; [basis] ; [targets?]
+
+[identifier] - identifier
+[basis]      - Basis
+[targets?]   - int, list<int>, ProbVal<int>, ProbVal<list<int>> (optional)
+```
+
+similar to [meas](#meas), `peek` measures `[targets?]` of `state` with respect to `[basis]` and sets `[identifer]` to the result, however `state` remains completely uneffected
+
 
 ## Control Flow
 
+### mark
+```
+mark [identifer]
+
+[identifier] - identifier
+```
+
+marks a line with `[identifier]` to later be jumped to with [jump](#jump) or [cjmp](#cjmp)
+
+### jump
+```
+jump [identifer]
+
+[identifier] - identifier
+```
+
+jumps to `mark [identifier]`
+
+### cjmp
+```
+cjmp [identifer] ; [condition]
+
+[identifier] - identifier
+[condition]  - bool
+```
+
+jumps to `mark [identifier]` if `[condition]` is true
+
+### halt
+```
+halt [condition?]
+
+[condition?]  - bool (optional)
+```
+
+halts execution if `[condition?]` is true, if there is no `[condition?]` always halts
+
+
 ## Misc
+
+### pydo
+```
+pydo [expr]
+
+[expr]  - any
+```
+
+evaluates expression `[expr]` and ignores what it evaluates to, identical to using `cdef x ; [expr]` but without variable assignment
+
+operator name stands for "python do"
+
+**example:**
+```
+cdef x ; ["hello"]
+pydo x.append("there")
+```
+
+### cout
+```
+cout [toPrint]
+
+[toPrint] - any
+```
+
+evaluates `[toPrint]` and prints it
+
+operator name stands for "console out"
 
 
 &nbsp;

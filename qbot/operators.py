@@ -474,7 +474,9 @@ operations = {
 
     # Control Flow
     'jump': (jump, 1, 1),
-    'cjmp': (cjmp, 2, 3),
+
+    # MARK: removed probval control flow
+    'cjmp': (cjmp, 2, 2),#3),
     #'qjmp': (qjmp, 2, 2),
     'halt': (halt, 0, 1),
     # also includes mark
