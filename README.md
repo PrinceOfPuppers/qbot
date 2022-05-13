@@ -3,19 +3,22 @@
 > A domain-specific programming language for analysing quamtum algorithms using the quantum circuit model and probabilistic computing.
 Paradigms: Quantum, Probabilistic, Imperative, Interpreted
 
+## Contents
 1. [OVERVIEW](#OVERVIEW)
     - [Probabilistic Computing](##Probabilistic)
-    - [Quantum Circuit Model](##Probabilistic)
-    - [General Syntax](##General Syntax)
+    - [Quantum Circuit Model](##Quantum-Circuit-Model)
+    - [General Syntax](##General-Syntax)
 
-2. [BUILTIN TYPES](#BUILTIN TYPES)
+2. [BUILTIN TYPES](#BUILTIN-TYPES)
     - [ProbVal](##ProbVal)
+    - [Basis](##Basis)
+    - [Measurement Result](##Measurement-Result)
 
 3. [OPERATIONS](#OPERATIONS)
     - [Defines](##Defines)
-    - [State Manipulation](##State Manipulation)
+    - [State Manipulation](##State-Manipulation)
     - [Measuring](##Measuring)
-    - [Control Flow](##Control Flow)
+    - [Control Flow](##Control-Flow)
     - [Misc](##Misc)
 
 4. [TOOLS](#TOOLS)
@@ -39,7 +42,7 @@ The syntax resembles an assembly language:
 ```
 OPERATION arg1 ; arg2 ; ...
 ```
-where the arguments are valid python expressions seperated by `;`. [OPERATIONS](#OPERATIONS) may [act on the qubit register](##State Manipulation), [measure the qubit register](##Measurement), [define variables](##Defines), [control the flow](##Control Flow), [among other functions](##Misc).
+where the arguments are valid python expressions seperated by `;`. [OPERATIONS](#OPERATIONS) may [act on the qubit register](##State-Manipulation), [measure the qubit register](##Measurement), [define variables](##Defines), [control the flow](##Control-Flow), [among other functions](##Misc).
 
 
 
@@ -59,23 +62,29 @@ print(x == 3) # prints ProbVal([0.5, 0.5], [False, True])
 ```
 They are compatible with nearly all inbuilt python operators, qbot specific helper functions, and the provided numpy/math functions. ProbVals will auto normalize on instanceation
 
-ProbVal Attributes:
-- `x.values` list of values x could be
-- `x.probs` list of probabilites for each value
+**ProbVal Attributes:**
+- `x.values - list<any>` \
+list of values x could be
+- `x.probs - list<float>` \
+list of probabilites for each value
 
-ProbVal Methods:
-- `x.toDensity()`           return density matrix if all values are either kets (1d np.ndarray), or density matrices (2d np.ndarray)
-- `x.map(lambdaFunc)`       returns a ProbVal with all the values in `x` mapped to return of `lambdaFunc`
-- `x.instance()`            used for instance checking, ie `if isinstance(x.instance(), int)`, returns the first value from `x.values` if all values are of the same type, else return `None`
-- `x.typeString()`          returns `ProbVal<[TYPE]>` if all values are of type `[TYPE]`, else returns `ProbVal<mixed>`
-- `x.isEquivalent(y)`       returns `True` if `x` and y are completly interchangable (contain all the same values with the same probabilities), else `False`
-
+**ProbVal Methods:**
+- `x.toDensity() -> np.ndarray` \
+return density matrix if all values are either kets (1d np.ndarray), or density matrices (2d np.ndarray)
+- `x.map(lambdaFunc) -> ProbVal` \
+returns a ProbVal with all the values in `x` mapped to return of `lambdaFunc`
+- `x.instance() -> any` \
+used for instance checking, ie `if isinstance(x.instance(), int)`, returns the first value from `x.values` if all values are of the same type, else returns `None`
+- `x.typeString() -> string` \
+returns `ProbVal<[TYPE]>` if all values are of type `[TYPE]`, else returns `ProbVal<mixed>`
+- `x.isEquivalent(y) -> bool` \
+returns `True` if `x` and y are completly interchangable (contain all the same values with the same probabilities), else `False`
 
 ProbVal also implements nearly all `python dunder methods`, which allows for its compatibility with python's operators and the like.
 
 
 ## Basis
-qbot predefines `computation` `hadamard` `bell` bases to be used to state creation and measurement, bases are represented as `Basis` type and can be indexed to get specific basis states, and passed directly to the [measurment operator](### meas). bases have several aliases for convience
+qbot predefines `computation` `hadamard` `bell` bases to be used to state creation and measurement, bases are represented as `Basis` type and can be indexed to get specific basis states, and passed directly to the [measurment operator](###meas). bases have several aliases for convience
 
 
 ```
@@ -91,21 +100,28 @@ note set z to |+>
 cdef y ; hada[0]
 ```
 
-Predefined bases aliases:
+**Predefined bases aliases:**
+- computation basis aliases: \
+`comp`, `computation`, `computational`, `compBasis`, `computationBasis`, `computationalBasis`
+- hadamard basis aliases: \
+`hadamard`, `had`, `hada`, `hadamardBasis`, `hadBasis`, `hadaBasis`
+- bell basis aliases: \
+`bell`, `epr`, `bellBasis`, `eprBasis`
 
-- computation basis aliases: `comp`, `computation`, `computational`, `compBasis`, `computationBasis`, `computationalBasis`
-- hadamard basis aliases:    `hadamard`, `had`, `hada`, `hadamardBasis`, `hadBasis`, `hadaBasis`
-- bell basis aliases:        `bell`, `epr`, `bellBasis`, `eprBasis`
 
+**Basis Attributes:**
+- `x.names - list<string>` \
+list of aliases
+- `x.numQubits - int` \
+corrisponds to the size of basis states
+- `x.density - list<np.ndarray>` \
+list of basis state density matrices
+- `x.kets    - list<np.ndarray>` \
+list of basis state kets
 
-Basis Attributes:
-- `x.names`     `list<string>` of aliases
-- `x.numQubits` `int` corrisponding to size of basis states
-- `x.density`   `list<np.ndarray>` basis state density matrices
-- `x.kets`      `list<np.ndarray>` basis state kets
-
-Basis "Methods":
-- `x[i]`  returns `np.ndarray` density matrix of ith basis state (short form of x.density[i])
+**Basis "Methods":**
+- `x[i] -> np.ndarray` \
+returns a density matrix of ith basis state (short form of x.density[i])
 
 
 ## MeasurementResult
@@ -126,12 +142,17 @@ this will print:
 |1〉- 0.0 (0.0%)
 ```
 
-MeasurementResult Attributes:
-- `x.probs`             `list<float>`      list of probabilites for each state in the measurment basis
-- `x.basisDensity`      `list<np.ndarray>` list of measurement basis states corrisponding to `x.probs`
-- `x.basisSymbols`      `list<string>`     list of measurement basis state ket representations (used in printout)
-- `x.newState`          `np.ndarray`       density matrix of `state` after measurement (what state is assigned to)
-- `x.unMeasuredDensity` `np.ndarray`       density matrix partially traced target qubits before measurement, gets turned into `x.newState`
+**MeasurementResult Attributes:**
+- `x.probs - list<float>` \
+list of probabilites for each state in the measurment basis
+- `x.basisDensity - list<np.ndarray>` \
+list of measurement basis states corrisponding to `x.probs`
+- `x.basisSymbols - list<string>` \
+list symbols of each measurement basis kets (used in printout)
+- `x.newState - np.ndarray` \
+density matrix of `state` after measurement (what state is assigned to)
+- `x.unMeasuredDensity - np.ndarray` \
+density matrix partially traced target qubits before measurement, gets turned into `x.newState`
 
 
 
@@ -162,7 +183,7 @@ adds `[value]` to the namespace under name `[identifier]`.
 
 Operator name stands for "classical define"
 
-example:
+**example:**
 ```
 cdef x ; 1234
 cdef y ; ProbVal([0.25, 0.75], ["hello", "there"])
@@ -179,7 +200,7 @@ adds `[value]` to the namespace under name `[identifier]`. `[value]` type must b
 
 operator name stands for "quantum define"
 
-example:
+**example:**
 ```
 qdef x ; tensorProd(computation[0], computation[1])
 qdef y ; ProbVal([0.25, 0.75], [hadamard[0], bell[1]])
