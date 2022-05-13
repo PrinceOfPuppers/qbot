@@ -14,18 +14,20 @@ Paradigms: Quantum, Probabilistic, Imperative, Interpreted
     - [Basis](##Basis)
     - [Measurement Result](##Measurement-Result)
 
-3. [OPERATIONS](#OPERATIONS)
+3. [TOOLS](#TOOLS)
+
+4. [OPERATIONS](#OPERATIONS)
     - [Defines](##Defines)
     - [State Manipulation](##State-Manipulation)
     - [Measuring](##Measuring)
     - [Control Flow](##Control-Flow)
     - [Misc](##Misc)
 
-4. [TOOLS](#TOOLS)
-5. [EXAMPLE](#EXAMPLE)
+
+5. [EXAMPLES](#EXAMPLES)
 
 
-
+&nbsp;
 # OVERVIEW
 qbot is a domain-specific programming language for analysing quamtum algorithms using the quantum circuit model and probabilistic computing. 
 
@@ -45,7 +47,7 @@ OPERATION arg1 ; arg2 ; ...
 where the arguments are valid python expressions seperated by `;`. [OPERATIONS](#OPERATIONS) may [act on the qubit register](##State-Manipulation), [measure the qubit register](##Measurement), [define variables](##Defines), [control the flow](##Control-Flow), [among other functions](##Misc).
 
 
-
+&nbsp;
 # BUILTIN TYPES
 List does not include standard python primitives
 
@@ -155,7 +157,11 @@ density matrix of `state` after measurement (what state is assigned to)
 density matrix partially traced target qubits before measurement, gets turned into `x.newState`
 
 
+&nbsp;
+# TOOLS
 
+
+&nbsp;
 # OPERATIONS
 
 Quick info format:
@@ -273,4 +279,9 @@ operator name stands for "measurement"
     'peek': (peek, 2, 3),
 
 ## Control Flow
+
 ## Misc
+
+
+&nbsp;
+# EXAMPLES
