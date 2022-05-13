@@ -17,8 +17,8 @@ Paradigms: Quantum, Probabilistic, Imperative, Interpreted
 3. [TOOLS AND CONSTANTS](#TOOLS-AND-CONSTANTS)
     - [Gates](#Gates)
     - [States](#States)
-    - [Combining Gates/States](#combininggatesstates)
-    - [numpy/math wrappers](numpymathwrappers)
+    - [Combining Gates/States](#combining-gatesstates)
+    - [numpy/math wrappers](#numpymath-wrappers)
 
 4. [OPERATIONS](#OPERATIONS)
     - [Defines](#Defines)
