@@ -145,9 +145,7 @@ def qset(localNameSpace, lines, lineNum, tokens) -> OpReturn:
 
     numQubits = hilbertSpaceNumQubits(localNameSpace['state'])
 
-    expr:str = tokens[1]
-
-    x = evaluateWrapper(lines, lineNum, expr, localNameSpace)
+    x = evaluateWrapper(lines, lineNum, tokens[1], localNameSpace)
     val = convertToDensity(lines, lineNum, x)
 
     if len(tokens) == 2:

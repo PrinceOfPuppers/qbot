@@ -34,6 +34,7 @@ class MeasurementResult:
             s += f'{self.basisSymbols[i]}- {prob} ({prob*100}%)\n'
         return s
 
+    # somewhat unnessisary given self.newState
     def toDensity(self):
         return densityEnsambleToDensity(self.probs, self.basisDensity)
 
