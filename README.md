@@ -1,3 +1,5 @@
+<img align="left" width="80" height="80" src="https://raw.githubusercontent.com/PrinceOfPuppers/qbot/main/icon.png">
+
 # QBOT
 
 > A domain-specific programming language for analyzing quantum algorithms using the quantum circuit model and probabilistic computing. Implemented in python with exclusively numpy. \
