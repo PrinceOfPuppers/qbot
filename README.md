@@ -1,34 +1,34 @@
-# qbot
+# QBOT
 
 > A domain-specific programming language for analyzing quantum algorithms using the quantum circuit model and probabilistic computing. Implemented in python with exclusively numpy. \
 Paradigms: Quantum, Probabilistic, Imperative, Interpreted
 
 ## Contents
-2. [OVERVIEW](#OVERVIEW)
+1. [OVERVIEW](#OVERVIEW)
     - [Probabilistic Computing](#Probabilistic-Computing)
     - [Quantum Circuit Model](#Quantum-Circuit-Model)
-    - [USAGE](#USAGE)
+    - [Usage](#Usage)
     - [General Syntax](#General-Syntax)
 
-3. [BUILTIN TYPES](#BUILTIN-TYPES)
+2. [BUILTIN TYPES](#BUILTIN-TYPES)
     - [ProbVal](#ProbVal)
     - [Basis](#Basis)
     - [MeasurementResult](#MeasurementResult)
 
-4. [TOOLS AND CONSTANTS](#TOOLS-AND-CONSTANTS)
+3. [TOOLS AND CONSTANTS](#TOOLS-AND-CONSTANTS)
     - [Gates](#Gates)
     - [States](#States)
     - [Combining Gates/States](#combining-gatesstates)
     - [numpy/math wrappers](#numpymath-wrappers)
 
-5. [OPERATIONS](#OPERATIONS)
+4. [OPERATIONS](#OPERATIONS)
     - [Defines](#Defines)
     - [State Manipulation](#State-Manipulation)
     - [Measurement](#Measurement)
     - [Control Flow](#Control-Flow)
     - [Misc](#Misc)
 
-6. [EXAMPLES](#EXAMPLES)
+5. [EXAMPLES](#EXAMPLES)
     - [Superdense Coding](#Superdense-Coding)
     - [Phase Kickback](#Phase-Kickback)
     - [The Deutsch Algorithm](#The-Deutsch-Algorithm)
@@ -36,9 +36,9 @@ Paradigms: Quantum, Probabilistic, Imperative, Interpreted
 
 &nbsp;
 # OVERVIEW
-qbot is a domain-specific programming language for analyzing quantum algorithms using the quantum circuit model and probabilistic computing. 
+Qbot is a domain-specific programming language for analyzing quantum algorithms using the quantum circuit model and probabilistic computing. 
 
-qbot uses a wrapped version of python's expression evaluation for its own expression evaluation, some examples of primitive/expression behaviour will be in python for this reason.
+Qbot uses a wrapped version of python's expression evaluation for its own expression evaluation, some examples of primitive/expression behaviour will be in python for this reason.
 
 Terminology used throughout this document:
 - `state` refers to the qubit register
@@ -48,9 +48,9 @@ Terminology used throughout this document:
 Rather than using a random number generator to decide the outcome of a random processes (i.e. measurement), qbot stores the outcomes and associated probabilities in a special primitive called a [ProbVal](#ProbVal) which can be used in further computation. 
 
 ## Quantum Circuit Model
-qbot has a register of qubits on which it applies unitary matrices, measurements, etc. On top of this, qbot contains a traditional namespace to be used in computation which comes pre-populated with many commonly needed unitaries, states, bases and operations. Anything missing can be created using the inbuilt [tools](#TOOLS-AND-CONSTANTS), or the exposed numpy functions, all of which are compatible with [ProbVals](#ProbVal).
+Qbot has a register of qubits on which it applies unitary matrices, measurements, etc. On top of this, qbot contains a traditional namespace to be used in computation which comes pre-populated with many commonly needed unitaries, states, bases and operations. Anything missing can be created using the inbuilt [tools](#TOOLS-AND-CONSTANTS), or the exposed numpy functions, all of which are compatible with [ProbVals](#ProbVal).
 
-## USAGE
+## Usage
 ### Installation
 ```
 git clone https://github.com/PrinceOfPuppers/qbot
@@ -94,7 +94,7 @@ Where the arguments are valid python expressions separated by `;`. [operations](
 List does not include standard python types or primitives.
 
 ## ProbVal
-qbot allows for the creation of probabilistic values (ProbVals) which are in essence a classical superposition of multiple possible values. They behave very similarly to standard variables in python, for example:
+Qbot allows for the creation of probabilistic values (ProbVals) which are in essence a classical superposition of multiple possible values. They behave very similarly to standard variables in python, for example:
 
 ``` python
 # python example
@@ -128,7 +128,7 @@ ProbVal also implements nearly all `python dunder methods`, which allows for its
 
 
 ## Basis
-qbot predefines `computation` `hadamard` `bell` bases to be used to state creation and measurement, bases are represented as `Basis` type and can be indexed to get specific basis states, and passed directly to the [measurement operator](#meas). Bases have several aliases for convenience i.e. `comp`, `hada`, etc.
+Qbot predefines `computation` `hadamard` `bell` bases to be used to state creation and measurement, bases are represented as `Basis` type and can be indexed to get specific basis states, and passed directly to the [measurement operator](#meas). Bases have several aliases for convenience i.e. `comp`, `hada`, etc.
 
 ```
 note qbot example
@@ -227,7 +227,7 @@ shifts all qubits up or down
 For more information about how these are represented/applied see [Basis](#Basis).
 
 ## Combining Gates/States
-qbot contains the following helpers implementing tensor/kroneker product:
+Qbot contains the following helpers implementing tensor/kroneker product:
 - `tensorProd(*args: np.ndarray) -> np.ndarray` \
 takes the tensor product of a variable number of `np.ndarrays`
 - `tensorExp(arg: np.ndarray, n:int) -> np.ndarray` \
@@ -237,7 +237,7 @@ returns the `n`th permutation of of `numTensProd` states in `densities` ie) `ten
 
 ## numpy/math wrappers
 
-qbot exposes nearly all numpy, numpy.linalg and builtin python math functions and wraps them to be compatible with [ProbVal](#ProbVal). numpy functions are prefixed with `np_*`, linalg with `linalg_*` and math functions with `math_*`.
+Qbot exposes nearly all numpy, numpy.linalg and builtin python math functions and wraps them to be compatible with [ProbVal](#ProbVal). numpy functions are prefixed with `np_*`, linalg with `linalg_*` and math functions with `math_*`.
 
 **Examples:**
 
