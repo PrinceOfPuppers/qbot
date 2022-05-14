@@ -4,14 +4,10 @@
 Paradigms: Quantum, Probabilistic, Imperative, Interpreted
 
 ## Contents
-1. [USAGE](#USAGE)
-    - [Installation](#Installation)
-    - [File Execution](#File-Execution)
-    - [Python Embedding](#Python-Embedding)
-
 2. [OVERVIEW](#OVERVIEW)
     - [Probabilistic Computing](#Probabilistic-Computing)
     - [Quantum Circuit Model](#Quantum-Circuit-Model)
+    - [USAGE](#USAGE)
     - [General Syntax](#General-Syntax)
 
 3. [BUILTIN TYPES](#BUILTIN-TYPES)
@@ -37,22 +33,38 @@ Paradigms: Quantum, Probabilistic, Imperative, Interpreted
     - [Phase Kickback](#Phase-Kickback)
     - [The Deutsch Algorithm](#The-Deutsch-Algorithm)
 
-&nbsp;
-# USAGE
 
-## Installation
+&nbsp;
+# OVERVIEW
+qbot is a domain-specific programming language for analyzing quantum algorithms using the quantum circuit model and probabilistic computing. 
+
+qbot uses a wrapped version of python's expression evaluation for its own expression evaluation, some examples of primitive/expression behaviour will be in python for this reason.
+
+Terminology used throughout this document:
+- `state` refers to the qubit register
+- `targets` refers to qubits in `state` being affected by an operation (such as a unitary or measurement)
+
+## Probabilistic Computing
+Rather than using a random number generator to decide the outcome of a random processes (i.e. measurement), qbot stores the outcomes and associated probabilities in a special primitive called a [ProbVal](#ProbVal) which can be used in further computation. 
+
+## Quantum Circuit Model
+qbot has a register of qubits on which it applies unitary matrices, measurements, etc. On top of this, qbot contains a traditional namespace to be used in computation which comes pre-populated with many commonly needed unitaries, states, bases and operations. Anything missing can be created using the inbuilt [tools](#TOOLS-AND-CONSTANTS), or the exposed numpy functions, all of which are compatible with [ProbVals](#ProbVal).
+
+## USAGE
+### Installation
 ```
 git clone https://github.com/PrinceOfPuppers/qbot
 pip install -e .
 ```
 
-## File Execution
+### File Execution
 ```bash
 $ qbot [FILE]
 ```
 Where `[FILE]` is either a relative or absolute path, the canonical file extension is `.qb` however this is not nessisary for qbot to attempt to execute a file.
 
-## Python Embedding
+
+### Python Embedding
 ```python
 from qbot import executeTxt, executeFile
 
@@ -68,24 +80,6 @@ with open(filePath, 'r') as f:
     executeFile(f)
 
 ```
-
-
-&nbsp;
-# OVERVIEW
-qbot is a domain-specific programming language for analyzing quantum algorithms using the quantum circuit model and probabilistic computing. 
-
-qbot uses a wrapped version of python's expression evaluation for its own expression evaluation, some examples of primitive/expression behaviour will be in python for this reason.
-
-Terminology used throughout this document:
-- `state` refers to the qubit register
-- `targets` refers to qubits in `state` being affected by an operation (such as a unitary or measurement)
-
-
-## Probabilistic Computing
-Rather than using a random number generator to decide the outcome of a random processes (i.e. measurement), qbot stores the outcomes and associated probabilities in a special primitive called a [ProbVal](#ProbVal) which can be used in further computation. 
-
-## Quantum Circuit Model
-qbot has a register of qubits on which it applies unitary matrices, measurements, etc. On top of this, qbot contains a traditional namespace to be used in computation which comes pre-populated with many commonly needed unitaries, states, bases and operations. Anything missing can be created using the inbuilt [tools](#TOOLS-AND-CONSTANTS), or the exposed numpy functions, all of which are compatible with [ProbVals](#ProbVal).
 
 ## General Syntax
 The syntax resembles an assembly language:
