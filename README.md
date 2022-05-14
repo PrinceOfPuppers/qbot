@@ -1,4 +1,4 @@
-<img align="left" width="80" height="80" src="https://raw.githubusercontent.com/PrinceOfPuppers/qbot/main/icon.png">
+<img align="left" width="80" height="80" src="https://raw.githubusercontent.com/PrinceOfPuppers/qbot/master/icon.png">
 
 # QBOT
 
