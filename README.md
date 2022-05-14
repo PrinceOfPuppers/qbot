@@ -4,33 +4,70 @@
 Paradigms: Quantum, Probabilistic, Imperative, Interpreted
 
 ## Contents
-1. [OVERVIEW](#OVERVIEW)
+1. [USAGE](#USAGE)
+    - [Installation](#Installation)
+    - [File Execution](#File-Execution)
+    - [Python Embedding](#Python-Embedding)
+
+2. [OVERVIEW](#OVERVIEW)
     - [Probabilistic Computing](#Probabilistic-Computing)
     - [Quantum Circuit Model](#Quantum-Circuit-Model)
     - [General Syntax](#General-Syntax)
 
-2. [BUILTIN TYPES](#BUILTIN-TYPES)
+3. [BUILTIN TYPES](#BUILTIN-TYPES)
     - [ProbVal](#ProbVal)
     - [Basis](#Basis)
     - [MeasurementResult](#MeasurementResult)
 
-3. [TOOLS AND CONSTANTS](#TOOLS-AND-CONSTANTS)
+4. [TOOLS AND CONSTANTS](#TOOLS-AND-CONSTANTS)
     - [Gates](#Gates)
     - [States](#States)
     - [Combining Gates/States](#combining-gatesstates)
     - [numpy/math wrappers](#numpymath-wrappers)
 
-4. [OPERATIONS](#OPERATIONS)
+5. [OPERATIONS](#OPERATIONS)
     - [Defines](#Defines)
     - [State Manipulation](#State-Manipulation)
     - [Measurement](#Measurement)
     - [Control Flow](#Control-Flow)
     - [Misc](#Misc)
 
-5. [EXAMPLES](#EXAMPLES)
+6. [EXAMPLES](#EXAMPLES)
     - [Superdense Coding](#Superdense-Coding)
     - [Phase Kickback](#Phase-Kickback)
     - [The Deutsch Algorithm](#The-Deutsch-Algorithm)
+
+&nbsp;
+# USAGE
+
+## Installation
+```
+git clone https://github.com/PrinceOfPuppers/qbot
+pip install -e .
+```
+
+## File Execution
+```bash
+$ qbot [FILE]
+```
+Where `[FILE]` is either a relative or absolute path, the canonical file extension is `.qb` however this is not nessisary for qbot to attempt to execute a file.
+
+## Python Embedding
+```python
+from qbot import executeTxt, executeFile
+
+qbScript = \
+'''
+cout "hello world!"
+'''
+
+executeTxt(qbScript)
+
+filePath = 'path/to/test.qb'
+with open(filePath, 'r') as f:
+    executeFile(f)
+
+```
 
 
 &nbsp;
@@ -42,6 +79,7 @@ qbot uses a wrapped version of python's expression evaluation for its own expres
 Terminology used throughout this document:
 - `state` refers to the qubit register
 - `targets` refers to qubits in `state` being affected by an operation (such as a unitary or measurement)
+
 
 ## Probabilistic Computing
 Rather than using a random number generator to decide the outcome of a random processes (i.e. measurement), qbot stores the outcomes and associated probabilities in a special primitive called a [ProbVal](#ProbVal) which can be used in further computation. 
